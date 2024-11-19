@@ -80,6 +80,10 @@ int main(int argc, char* argv[])
 		std::cout << "Error:  line_ext_method or line_files_folder and line_files_extension should be designate at least one of them!\n use --help for more help" << std::endl;
 		return -1;
 	}
+	if(!(uselsd == 1 || uselsd == 2 || uselsd == 3 || uselsd == -1)){
+		std::cout << "Error: line_ext_method designate with wrong value!\n use --help for more help" << std::endl;
+		return -1;
+	}
 
 	printf("uselsd %d fromcolmap %d maxwidth %d\n", uselsd, fromcolmap, maxwidth);
 	std::cout << inputFolder << nvmFile << std::endl;

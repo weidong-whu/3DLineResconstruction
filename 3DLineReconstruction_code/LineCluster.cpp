@@ -684,6 +684,7 @@ bool ransac(const cv::Mat& vecs, cv::Mat& model, std::vector<bool>& inliers, int
 }
 
 void ransacLines(cv::Mat lines3d, PARAMS param, cv::Mat& inlierIdx, std::vector<cv::Mat>& models) {
+	if(lines3d.rows < 5) return;
 	cv::Mat vecs = lines3d.colRange(0, 3) - lines3d.colRange(3, 6);
 
 	vecs = normalizeVectors(vecs);
