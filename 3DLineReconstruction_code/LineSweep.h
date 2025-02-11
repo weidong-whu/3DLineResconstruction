@@ -1,12 +1,9 @@
 ﻿#pragma once
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
+#pragma once
 
-#include "SfMManager.h"
-#include "MatchManager.h"
-
-#include <opencv2/opencv.hpp>
-#include <queue>
+#include"SfMManager.h"
+#include"MatchManager.h"
+#include<queue>
 
 struct SFM_INFO {
     std::vector<cv::Mat> camID;
@@ -83,7 +80,7 @@ class MergeProcess
    
     }
 
-    void copy2CUDA();
+  
 
     void MergeProcess::sweepCheckLine(const ushort* limap,int imageid, int curmatch, float max_error, float mean, float std);
     
