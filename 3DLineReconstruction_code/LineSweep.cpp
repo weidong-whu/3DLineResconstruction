@@ -341,7 +341,6 @@ MergeProcess::MergeProcess(SfMManager* sfmM, MatchManager* matchM) {
 	//pairID.resize(matchM->matchSize());
 
 	for (int i = 0; i < matchM->matchSize(); i++) {
-
 		int n = matchM->line3DArrPtr(i)->rows;
 
 		if (n <= minimumCellCout)
@@ -355,18 +354,14 @@ MergeProcess::MergeProcess(SfMManager* sfmM, MatchManager* matchM) {
 	int im1 = 0, im2 = 0;
 	int lid1 = 0, lid2 = 0;
 	for (int i = 0; i < matchM->matchSize(); i++) {
-
-		
-
 		cv::Mat* matchMi = matchM->matcheArrPtr(i);
+		ushort* matchMiptr = (ushort*)matchMi->data;
+		matchM->iPairIndex(i, im1, im2);
 
-		int n = matchMi->rows;
+		int n = matchM->line3DArrPtr(i)->rows;
 
 		if (n <= minimumCellCout)
 			continue;
-
-		ushort* matchMiptr = (ushort*)matchMi->data;
-		matchM->iPairIndex(i, im1, im2);
 
 		for (int j = 0; j < matchMi->rows; j++) {
 			lid1 = matchMiptr[0];

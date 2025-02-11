@@ -17,7 +17,6 @@ Welcome to the public repository for our paper: *"Clustering, Triangulation, and
 - A GPU and CUDA are required for efficient K-Nearest Neighbors (KNN) computation.
 - Line matching is based on the approach described in the paper:  
   **"ELSR: Efficient Line Segment Reconstruction with Planes and Points Guidance," CVPR 2022.**  
-  Both debug and release versions are provided in the `3DLineReconstruction_Lib` directory.
 
 ### Test Platform
 
