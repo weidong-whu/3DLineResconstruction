@@ -41,10 +41,10 @@ Welcome to the public repository for our paper: *"Clustering, Triangulation, and
   | NLOPT        | 2.7.1   |
 
 ## Usage
-
-- The algorithm requires the SfM result file named `res.nvm` from either Photoscan or VisualSfM.**Note that the nvm exported from Colmap is currently not well supported in our code.
+- The algorithm requires the SfM result file named `res.nvm` from either Photoscan or VisualSfM.
 - Ensure that `res.nvm` is located in the image directory.
 - Refer to the `example/Castle30` directory for sample input data.
+- **Note that the nvm exported from Colmap is currently not well supported in our code.**  
 
 ### Command-Line Usage
 
