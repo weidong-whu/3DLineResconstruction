@@ -22,14 +22,10 @@ Welcome to the public repository for our paper: *"Clustering, Triangulation, and
 
 - Third-Party Libraries:
 
-  | Library Name | Version |
-  | ------------ | ------- |
-  | Boost        | 1.79.0  |
-  | Eigen        | 3.4.0   |
-  | OpenCV       | 4.5.5   |
-  | OpenMP       |         |
-  | TCLAP        | 1.4.0   |
-  | NLOPT        | 2.7.1   |
+|              | Boost | Eigen | OpenCV | OpenMP | TCLAP | NLOPT |
+|--------------|-------|--------|--------|--------|--------|--------|
+| **Version**  | 1.79.0 | 3.4.0 | 4.5.5 |        | 1.4.0 | 2.7.1 |
+
 
 ## Usage with visual sfm (the support for pixel 4d is comming soon)
 - The algorithm requires the SfM result file named `res.nvm` from either Photoscan or VisualSfM.
