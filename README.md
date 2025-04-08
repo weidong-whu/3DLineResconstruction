@@ -97,8 +97,10 @@ If you want to use your line segment extraction results, keep the line segment s
 ### Recent reconstructions
 
 <p align="center">
-  <img src= />
-  <img src="example/20250408.png" width="45%" />
+  <figure>
+    <img src="example/20250408.png" width="45%" />
+    <figcaption align="center">Reconstruct with 259 images (8192 ✖ 5460)</figcaption>
+  </figure>
 </p>
 
 ## License
