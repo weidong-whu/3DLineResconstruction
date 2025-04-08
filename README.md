@@ -94,6 +94,13 @@ The public datasets used in the paper are as follows
 
 If you want to use your line segment extraction results, keep the line segment storage format consistent with the example file. Each line segment detected from the image in the example file is stored in a separate line. The two endpoints of the line segment are stored as four numbers [x1 y1 x2 y2]  separated by spaces, and no other characters are required. 
 
+### Recent reconstructions
+
+<p align="center">
+  <img src= />
+  <img src="example/20250408.png" width="45%" />
+</p>
+
 ## License
 
 The source code of 3D line reconstruction is released under [GPLv2](http://www.gnu.org/licenses/old-licenses/gpl-2.0.html) license. For commercial use, please contact us.
