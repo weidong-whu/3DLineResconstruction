@@ -16,8 +16,7 @@ Welcome to the public repository for our paper: *"Clustering, Triangulation, and
 ### Test Platform
 
 - **Operating System:** Windows 11
-- **IDE:** Visual Studio 2019
-- **CUDA Version:** 11.7
+- **IDE:** Visual Studio 2022
 - **Processor:** Intel i9-14900K
 ## Dependencies
 
