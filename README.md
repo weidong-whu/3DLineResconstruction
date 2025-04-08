@@ -5,27 +5,19 @@ Welcome to the public repository for our paper: *"Clustering, Triangulation, and
 - Adaptive 3D line clustering for multi-view reconstruction.
 - Robust triangulation with geometric consistency.
 
-  | Source File            | Description                                         |
-  | ---------------------- | --------------------------------------------------- |
-  | `Main_SfM.cpp`         | Main function, generates OBJ files                  |
-  | `LineSweep.cpp`, `LineCluster.cpp` | Implements adaptive line clustering          |
-  | `Triangulate3Dlines.cpp` | Implements triangulation with geometric consistency |
 
 ## Installation
 
-- Use the `CMakeLists.txt` file in the `3DLineReconstruction_code` directory to compile the repository with CMake.
-- A GPU and CUDA are required for efficient K-Nearest Neighbors (KNN) computation.
+- Use the `CMakeLists.txt` file in the `ELSRPP_MULTI` directory to compile the repository with CMake.
+- VCPKG is recommended in Windows.
 - Line matching is based on the approach described in the paper:  
   **"ELSR: Efficient Line Segment Reconstruction with Planes and Points Guidance," CVPR 2022.**  
 
 ### Test Platform
 
 - **Operating System:** Windows 11
-- **IDE:** Visual Studio 2019
-- **CUDA Version:** 11.7
+- **IDE:** Visual Studio 2022
 - **Processor:** Intel i9-14900K
-- **Graphics Card:** Nvidia RTX 3090
-
 ## Dependencies
 
 - Third-Party Libraries:
@@ -35,12 +27,11 @@ Welcome to the public repository for our paper: *"Clustering, Triangulation, and
   | Boost        | 1.79.0  |
   | Eigen        | 3.4.0   |
   | OpenCV       | 4.5.5   |
-  | CUDA         | 11.7    |
   | OpenMP       |         |
   | TCLAP        | 1.4.0   |
   | NLOPT        | 2.7.1   |
 
-## Usage
+## Usage with visual sfm (the support for pixel 4d is comming soon)
 - The algorithm requires the SfM result file named `res.nvm` from either Photoscan or VisualSfM.
 - Ensure that `res.nvm` is located in the image directory.
 - Refer to the `example/Castle30` directory for sample input data.
