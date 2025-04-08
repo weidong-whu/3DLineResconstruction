@@ -99,6 +99,3 @@ If you want to use your line segment extraction results, keep the line segment s
   </figure>
 </p>
 
-## License
-
-The source code of 3D line reconstruction is released under [GPLv2](http://www.gnu.org/licenses/old-licenses/gpl-2.0.html) license. For commercial use, please contact us.
