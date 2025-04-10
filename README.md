@@ -6,7 +6,7 @@ Welcome to the public repository for our paper: *"Clustering, Triangulation, and
 - Robust triangulation with geometric consistency.
 
 
-## Installation
+### Installation
 
 - Use the `CMakeLists.txt` file in the `ELSRPP_MULTI` directory to compile the repository with CMake.
 - VCPKG is recommended in Windows.
@@ -18,7 +18,7 @@ Welcome to the public repository for our paper: *"Clustering, Triangulation, and
 - **Operating System:** Windows 11
 - **IDE:** Visual Studio 2022
 - **Processor:** Intel i9-14900K
-## Dependencies
+### Dependencies
 
 - Third-Party Libraries:
 
@@ -27,15 +27,18 @@ Welcome to the public repository for our paper: *"Clustering, Triangulation, and
 | **Version**  | 1.79.0 | 3.4.0 | 4.5.5 |        | 1.4.0 | 2.7.1 |
 
 
-## Usage with sfm 
+### SFM
 - The algorithm requires the SfM result from either visualsfm and pixel4d.
 - The usage with TCLAP command line can be find in the "region TCLAP cmd line trans" of "main_visualSFM.cpp" and "main_pixel4d.cpp"
 - **Note that the nvm exported from Colmap is currently not well supported in our code.**  
 
-## Line detector
- It now supports LSD, Ag3line,  and Edlines. But there are bugs with edlines.
+### 2D Line detector
+It now supports 
+-LSD
+-Ag3line
+-Edlines
 
-## Recent reconstructions
+### Recent reconstructions
 <p align="center">
   <img src="https://github.com/user-attachments/assets/abd6b995-910c-4d82-af7e-986e4eaefafd" width="45%" />
   <img src="https://github.com/user-attachments/assets/94b57979-b6eb-4e05-b77c-c918977f11d2" width="45%" />
