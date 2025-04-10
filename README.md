@@ -29,7 +29,7 @@ Welcome to the public repository for our paper: *"Clustering, Triangulation, and
 
 ## Usage with sfm 
 - The algorithm requires the SfM result from either visualsfm and pixel4d.
-- The usage with TCLAP command line can be find in "region TCLAP cmd line trans" with "main_visualSFM.cpp" and "main_pixel4d.cpp"
+- The usage with TCLAP command line can be find in the "region TCLAP cmd line trans" of "main_visualSFM.cpp" and "main_pixel4d.cpp"
 - **Note that the nvm exported from Colmap is currently not well supported in our code.**  
 
 ## Line detector
