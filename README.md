@@ -19,9 +19,10 @@ Welcome to the public repository for our paper: *"Clustering, Triangulation, and
 ### Dependencies
 
 - Third-Party Libraries:
-|              | Boost | Eigen | OpenCV | OpenMP | TCLAP | NLOPT |
-|--------------|-------|--------|--------|--------|--------|--------|
-| **Version**  | 1.79.0 | 3.4.0 | 4.5.5 |        | 1.4.0 | 2.7.1 |
+
+|              | Boost  | Eigen | OpenCV | OpenMP | TCLAP | NLOPT |
+|--------------|--------|-------|--------|--------|-------|--------|
+| **Version**  | 1.79.0 | 3.4.0 | 4.5.5  |        | 1.4.0 | 2.7.1  |
 
 
 ### SFM
