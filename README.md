@@ -1,6 +1,6 @@
 # 3D Line Reconstruction
 
-Welcome to the public repository for our paper: *"Clustering, Triangulation, and Evaluation of 3D Lines in Multiple Images."* This repository features:
+Welcome to the public repository for our paper: *"Clustering, Triangulation, and Evaluation of 3D Lines in Multiple Images. ISPRS,2024"* This repository features:
 
 - Adaptive 3D line clustering for multi-view reconstruction.
 - Robust triangulation with geometric consistency.
@@ -22,14 +22,10 @@ Welcome to the public repository for our paper: *"Clustering, Triangulation, and
 
 - Third-Party Libraries:
 
-  | Library Name | Version |
-  | ------------ | ------- |
-  | Boost        | 1.79.0  |
-  | Eigen        | 3.4.0   |
-  | OpenCV       | 4.5.5   |
-  | OpenMP       |         |
-  | TCLAP        | 1.4.0   |
-  | NLOPT        | 2.7.1   |
+|              | Boost | Eigen | OpenCV | OpenMP | TCLAP | NLOPT |
+|--------------|-------|--------|--------|--------|--------|--------|
+| **Version**  | 1.79.0 | 3.4.0 | 4.5.5 |        | 1.4.0 | 2.7.1 |
+
 
 ## Usage with visual sfm (the support for pixel 4d is comming soon)
 - The algorithm requires the SfM result file named `res.nvm` from either Photoscan or VisualSfM.
@@ -94,6 +90,12 @@ The public datasets used in the paper are as follows
 
 If you want to use your line segment extraction results, keep the line segment storage format consistent with the example file. Each line segment detected from the image in the example file is stored in a separate line. The two endpoints of the line segment are stored as four numbers [x1 y1 x2 y2]  separated by spaces, and no other characters are required. 
 
-## License
+## Recent reconstructions
 
-The source code of 3D line reconstruction is released under [GPLv2](http://www.gnu.org/licenses/old-licenses/gpl-2.0.html) license. For commercial use, please contact us.
+<p align="center">
+  <figure>
+    <img src="example/20250408.png" width="45%" />
+    <figcaption align="center">Reconstruct with 259 images (8192 ✖ 5460)</figcaption>
+  </figure>
+</p>
+
