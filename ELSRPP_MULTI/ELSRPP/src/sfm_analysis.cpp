@@ -292,19 +292,18 @@ void line2lineerr(std::vector<point_info>& points, std::vector<cv::Mat>& Ms, std
 }
 
 void point2lineerr(float* pt3, std::vector<point_info>& points, std::vector<cv::Mat>& Ms, std::vector<cv::Mat>& Cs, std::vector<cv::Mat*>& errs) {
+
 	int N = points.size();
 	point_info pi1, pi2;
 	float* cen1, * cen2, * M1, * M2;
-
 	float p1[2], v1[3], pt[3];
-
-
 
 	float err = 99999999;
 	float trueminerr = 0;
-	for (int i = 0; i < N; i++) {
-		pi1 = points[i];
 
+	for (int i = 0; i < N; i++) {
+
+		pi1 = points[i];
 		cen1 = (float*)Cs[pi1.camid].data;
 		M1 = (float*)Ms[pi1.camid].data;
 
@@ -317,11 +316,12 @@ void point2lineerr(float* pt3, std::vector<point_info>& points, std::vector<cv::
 		pt[1] = cen1[1] + 5 * v1[1];
 		pt[2] = cen1[2] + 5 * v1[2];
 		err = point_2_line_dis_3D(pt3, cen1, pt);
+
 		if (isnan(err))
 			continue;
+
 		errs[pi1.camid]->push_back(err);
 	}
-
 
 }
 

@@ -1,7 +1,7 @@
 project(VisualSFM)
 # 检查是否已经定义了 CMAKE_TOOLCHAIN_FILE
 if (NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-    set(CMAKE_TOOLCHAIN_FILE "C:/Users/weixi/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "vcpkg toolchain file")
+    set(CMAKE_TOOLCHAIN_FILE "C:\Users\weideep\vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "vcpkg toolchain file")
 endif()
 add_executable(VSFM main_visualSFM.cpp)
 

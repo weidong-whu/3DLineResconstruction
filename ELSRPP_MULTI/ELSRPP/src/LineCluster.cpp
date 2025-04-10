@@ -1964,31 +1964,12 @@ void lineCluster(SfMManager* sfm, MergeProcess* mergeProc, std::string inputFold
 	cv::Mat planeRef = coplanarRef(imgInfo, spaceRec, param);
 
 	cv::Mat control3D, reviseID;
+
 	// Satge space line
 	divideSpaceLine(control3D, reviseID, colinearRef, planeRef);
 
-	//write2txt((float*)spaceRec.lines3D.ptr(), spaceRec.lines3D.rows, spaceRec.lines3D.cols,"res.txt");
-	//write2txt((float*)control3D.ptr(), control3D.rows, control3D.cols,"control3D.txt");
-
-	std::ofstream outfile;
-	outfile.open("obj.obj");
-	//cv::Mat spaceLine;
-	for (int i = 0; i < spaceRec.lines3D.rows; i++) {
-		outfile << "v " << spaceRec.lines3D.at<float>(i, 0) << " " << spaceRec.lines3D.at<float>(i, 1) << " " << spaceRec.lines3D.at<float>(i, 2) << "\n";
-		outfile << "v " << spaceRec.lines3D.at<float>(i, 3) << " " << spaceRec.lines3D.at<float>(i, 4) << " " << spaceRec.lines3D.at<float>(i, 5) << "\n";
-	}
-	for (int i = 0; i < spaceRec.lines3D.rows; i++) {
-		outfile << "l " << i * 2 + 1 << " " << i * 2 + 2 << "\n";
-	}
-	outfile.close();
-
-
-	std::cout << "fuck here in ";
-	
 	// Satge line grow
 	cv::Mat revised3D2 = lineGrow1(imgInfo, spaceRec, control3D, reviseID, param);
-
-	std::cout << "fuck here out ";
 
 	cv::Mat planeids;
 	for (int i = 0; i < planeRef.rows; i++) {
@@ -2008,15 +1989,15 @@ void lineCluster(SfMManager* sfm, MergeProcess* mergeProc, std::string inputFold
 	// Satge 10
 	cv::Mat lines3D = multiReconstruction(in, imgInfo, spaceRec, param);
 
-	// Satge 11: output
+	// Satge 11
 	cv::Mat outMat = cv::Mat();
 	for (int i = 0; i < lines3D.rows; i++) {
 		if (lines3D.at<float>(i, 0) != 0) {
 			outMat.push_back(lines3D.row(i).colRange(1, 7));
 		}
 	}
-	outObj(inputFolder + "\\elsrpp.obj", outMat);
 
+	outObj(inputFolder + "\\elsrpp.obj", outMat);
 	std::string linesFile, camsFile, nameFile;
 	linesFile = inputFolder + "\\spaceLines.txt";
 	camsFile = inputFolder + "\\cams.txt";

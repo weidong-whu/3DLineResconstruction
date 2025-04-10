@@ -1,7 +1,6 @@
 #pragma once
 #include<vector>
 #include <opencv2/core.hpp>
-#include "ThreadPool.h"
 
 #define LINE3DCOL 6
 

@@ -29,11 +29,14 @@ class SfMManager
 	std::vector<cv::Mat> junctionLines;
 	std::vector<cv::Mat> parraLines;
 	std::vector<cv::Mat> imageLines;
-	//std::vector<cv::Mat> multiPoints;
+	
 	
 	
 
 public:
+
+	std::string sfmType;
+
 	void writeCmaratxt();
 	void writeImagePoints();
 	void writeCameraCenters();
@@ -42,7 +45,6 @@ public:
 	float shift_median_min;
 
 	void addTrainPrioi(cv::Mat trainPDF, cv::Mat mean_std_, cv::Mat maxv_);
-
 	void addImageNames(std::string image_name);
 	std::string iImageNames(int i);
 	std::vector<std::string>*allImageNames();
@@ -69,6 +71,7 @@ public:
 	cv::Mat* allCamsCenters();
 
 	void addCameraBySize(int rows, int cols, int i);
+	void addCamera(cv::Mat CM_i,int i);
 	float* iCameraMatPtr(int i);
 	cv::Mat iCameraMat(int i);
 	cv::Mat* allCameraMat();
@@ -85,6 +88,7 @@ public:
 	std::string nvmFile();
 
 	SfMManager(std::string inputFolder, std::string nvmFile, int NBINS);
+	SfMManager(std::string inputFolder, int NBINS);
 
 	void iniImageSize();
 	void iniCameraSize();

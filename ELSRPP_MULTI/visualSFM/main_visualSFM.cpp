@@ -11,7 +11,7 @@
 #include "PairMatch.h"
 #include "LineSweep.h"
 #include "Parameters.h"
-#include "ThreadPool.h"
+
 #include "sfm_analysis.h"
 #include "IO.h"
 #include "BasicMath.h"
@@ -116,13 +116,10 @@ int read_VisualSfM(
 		cv::hconcat(R, t, Rt);
 
 		sfm->addCamsRT(Rt);
-
 		sfm->addCamsCenter(C.t());
-
 
 		// for error construction
 		cv::Mat KK = cv::Mat::zeros(3, 3, CV_32FC1);
-
 		KK.at<float>(0, 0) = focal_length;
 		KK.at<float>(1, 1) = focal_length;
 		KK.at<float>(2, 2) = 1;
@@ -130,7 +127,6 @@ int read_VisualSfM(
 
 		int aw, ah, as;
 		get_image_size_without_decode_image((inputFolder + "/" + filename).c_str(), &aw, &ah, &as);
-
 
 		KK.at<float>(0, 2) = aw / 2.0;
 		KK.at<float>(1, 2) = ah / 2.0;
@@ -161,6 +157,7 @@ int read_VisualSfM(
 		sfm->addImSize(ah, aw, i);
 		sfm->addCameraBySize(ah, aw, i);
 	}
+
 
 	//std::ofstream ofs;
 	//ofs.open(inputFolder + "//output//multiPoints.txt", std::ios::out);
@@ -207,7 +204,6 @@ int read_VisualSfM(
 		unsigned int camID, siftID;
 		float posX, posY;
 
-		//std::string points;
 		cv::Mat points;
 		for (unsigned int j = 0; j < num_views; ++j) {
 			iss_point3D >> camID >> siftID;
@@ -215,22 +211,10 @@ int read_VisualSfM(
 
 			cam_IDs.push_back(camID);
 
-
-
-			if (fromcolmap == 1) {
-				posX = posX - xsize[camID];
-				posY = posY - ysize[camID];
-			}
-
-
-
 			pos3D.at<float>(0, 0) = posX;
 			pos3D.at<float>(0, 1) = posY;
 			pos3D.at<float>(0, 2) = i + 1;
 
-
-			//std::string subline = std::to_string(camID) + " " + std::to_string(posX + xsize[camID]) + " " + std::to_string(posY + ysize[camID]) + ",";
-			//points = points + subline;
 			cv::Mat subline = (cv::Mat_<float>(1, 3) << camID, posX + xsize[camID], posY + ysize[camID]);
 			points.push_back(subline);
 
@@ -356,10 +340,11 @@ int read_VisualSfM(
 }
 
 
-
 int main(int argc, char* argv[])
 {
-#pragma region TCLAP cmd line trans
+
+	#pragma region TCLAP cmd line trans
+
 	TCLAP::CmdLine cmd("ELSRPP"); //introduction of the program
 
 	TCLAP::ValueArg<std::string> inputFld("i", "input_folder", "folder containing the images", true, "", "string");
@@ -390,15 +375,13 @@ int main(int argc, char* argv[])
 
 	TCLAP::ValueArg<int> max_LineNum("n", "max_line_num", "the maximum line number of input lines", false, 99999, "int");
 	cmd.add(max_LineNum);
-
 	cmd.parse(argc, argv);
 
-#pragma endregion
+	#pragma endregion
 
 	clock_t start, end;
 	start = clock();
 
-	
 	std::string inputFolder = inputFld.getValue().c_str();
 	std::string nvmFile = "res.nvm";
 	nvmFile = "\\" + nvmFile;
@@ -416,26 +399,19 @@ int main(int argc, char* argv[])
 	}
 
 	printf("uselsd %d fromcolmap %d maxwidth %d\n", uselsd, fromcolmap, maxwidth);
-
-	//if (!std::filesystem::exists(inputFolder + "\\output"));
-	//	std::filesystem::create_directories(inputFolder + "\\output");
-	
 	std::cout << inputFolder << nvmFile << std::endl;
-	
 
 	int knn_image =10;
 	int conectionNum = 50;
 
-	SfMManager sfm(inputFolder, nvmFile,ADAPTIVE_BINS);
+	SfMManager sfm(inputFolder, nvmFile, ADAPTIVE_BINS);
 	MatchManager match;
 
-	// read .nvm of VisualSf Mread_VisualSfM
+	// read .nvm of VisualSfM
 	read_VisualSfM(&sfm, &match, knn_image, conectionNum, fromcolmap);
-
 	std::cout << "process visual sfm in "
 	<< (float)(clock() - start) / CLOCKS_PER_SEC << "s" << std::endl;
 
-	//getchar();
 	//1 Process single images,run_old_stream in multiple threads 
 	start = clock();
 	int* nums = new int[sfm.camsNumber()];
@@ -454,26 +430,24 @@ int main(int argc, char* argv[])
 
 	start = clock();
 	int matchIM1, matchIM2;
+
 	#pragma omp parallel for
 	for (int matchID = 0; matchID < match.matchSize(); matchID++)
 	{
 		match.iPairIndex(matchID, matchIM1, matchIM2);
 		matchPair(&sfm, &match, matchID,POINT_LINE_DIS, LINE_LINE_ANG);
 	}
-
 	std::cout << "matchPair in "
 		<< (float)(clock() - start) / CLOCKS_PER_SEC << "s" << std::endl;
 
 	start = clock();
 	MergeProcess* mp= new MergeProcess(&sfm, &match);
 	mp->beginSweep();
-
 	std::cout << "sweep in in "
 		<< (float)(clock() - start) / CLOCKS_PER_SEC << "s" << std::endl;
 
 	//Line Cluster
 	start = clock();
-	
 	lineCluster(&sfm, mp, inputFolder);
 
 	std::cout << "line cluster in in "

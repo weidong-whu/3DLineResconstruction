@@ -708,6 +708,7 @@ int processImage(
 		allignLineSegments(&lines_Mf, img_float);
 	}
 	else if (uselsd = -1) {
+
 		std::string tempName = image_name;
 		tempName.replace(tempName.find_last_of("."), tempName.length(), "");
 		string linestr = lineFolder + "/" + tempName + lineExt;
@@ -719,6 +720,7 @@ int processImage(
 		cv::Mat img = cv::imread(input_folder + "/" + image_name, 0);
 		img.convertTo(img_float, CV_32FC1);
 		allignLineSegments(&lines_Mf, img_float);
+
 	}
 	
 	if (lines_Mf.rows <5)	
@@ -740,7 +742,6 @@ int processImage(
 		return 0;
 	}
 	
-
 	//4 load points and query knn points for intersections
 	cv::Mat pt2 = *(sfm->iImagePointsPtr(img_ind));
 	if (pt2.rows <= SUPPORT_POINT_NUM)
@@ -755,11 +756,15 @@ int processImage(
 	float imr_2 = img.rows / 2.0;
 	float imc_2 = img.cols / 2.0;
 
-	for (int i = 0; i < pt2_Mf.rows; i++)
+	if (sfm->sfmType=="vsfm")
 	{
-		pt2_Mf.at<float>(i,0) = pt2_Mf.at<float>(i, 0) + imc_2;
-		pt2_Mf.at<float>(i, 1) = pt2_Mf.at<float>(i, 1) + imr_2;
+		for (int i = 0; i < pt2_Mf.rows; i++)
+		{
+			pt2_Mf.at<float>(i, 0) = pt2_Mf.at<float>(i, 0) + imc_2;
+			pt2_Mf.at<float>(i, 1) = pt2_Mf.at<float>(i, 1) + imr_2;
+		}
 	}
+
 
 	cv::Mat inter_knn_Mi, line_knn_Mi_1, line_knn_Mi_2, linemid_knn;
 
@@ -779,7 +784,7 @@ int processImage(
 	sfm->setImageLineSize(lines_Mf.rows, img_ind);
 	//5 compute the point depth for line and inter
 	//5.1 calculate cameras
-	sfm->addCameraBySize(img.rows, img.cols, img_ind);
+	//sfm->addCameraBySize(img.rows, img.cols, img_ind);
 
 	cv::Mat inter_max_min = cv::Mat(inter_lines_Mf.rows, 2, CV_32FC1);
 	maxMinPt(inter_lines_Mf.rows, inter_knn_Mi.cols, sfm->points3D_ptr(),

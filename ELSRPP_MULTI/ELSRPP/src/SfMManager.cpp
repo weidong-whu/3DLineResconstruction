@@ -48,9 +48,17 @@ void SfMManager::iniCameraSize()
 
 SfMManager::SfMManager(std::string inputFolder, std::string nvmFile,int NBINS)
 {
+	sfmType = "vsfm";
 	input_folder_ = inputFolder;
 	nvmFile_ = nvmFile;
 	bins = NBINS;
+}
+
+SfMManager::SfMManager(std::string inputFolder, int NBINS)
+{
+	input_folder_ = inputFolder;
+	bins = NBINS;
+	sfmType = "pixel4d";
 }
 
 std::string SfMManager::inputFolder()
@@ -357,9 +365,17 @@ void SfMManager::addCameraBySize(int rows, int cols, int i)
 	for (int k = 0; k < 9; k++)
 		camera33Trans.at<float>(i, k) = ((float*)M.data)[k];
 
+}
 
+void SfMManager::addCamera(cv::Mat CM_i,int i)
+{
 
+	for (int k = 0; k < 12; k++)
+		cameraMat.at<float>(i, k) = ((float*)CM_i.data)[k];
 
+	cv::Mat M = CM_i.colRange(0, 3).clone().t();
+	for (int k = 0; k < 9; k++)
+		camera33Trans.at<float>(i, k) = ((float*)M.data)[k];
 
 }
 

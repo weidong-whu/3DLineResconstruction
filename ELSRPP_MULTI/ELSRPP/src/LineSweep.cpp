@@ -2,7 +2,6 @@
 #include<vector>
 #include <numeric>
 #include"IO.h"
-#include "ThreadPool.h"
 //#include"ReconstructLines.h"
 #include"BasicMath.h"
 #include "Parameters.h"

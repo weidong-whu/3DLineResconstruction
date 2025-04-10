@@ -54,10 +54,6 @@
 #define MAX_IMAGE_WIDTH 60000 //revise0505
 #endif 
 
- /*
-   One can scale the image by change this threshold.
-   it is set as a large number to avoid scale.
-  */
 #ifndef SAMPLE_COS_INTERVAL
 #define SAMPLE_COS_INTERVAL 0.01
 #endif 
