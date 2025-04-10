@@ -1,26 +1,24 @@
-//
+////
 //  LineCluster.cpp
-//  误差分析
+//  Error Analysis
 //
 //  Created by Alexxxxx on 2024/7/14.
 //
 #include "LineCluster.h"
 #include "BasicMath.h"
-#ifndef LINE_plane_sin_min
-#define LINE_plane_sin_min 0.0087
-#endif
+#include "Parameters.h"
 
-// 计算向量叉乘
+// Compute cross product of two vectors
 cv::Vec3d crossProduct(const cv::Vec3d& v1, const cv::Vec3d& v2) {
 	return v1.cross(v2);
 }
 
-// 计算两点之间的距离
+// Compute the distance between two points
 double getDist(const cv::Vec3d& point1, const cv::Vec3d& point2) {
 	return cv::norm(point1 - point2);
 }
 
-// 计算直线参数方程
+// Compute the line equation parameters
 void LineEquation(const cv::Vec3d& V1, const cv::Vec3d& V2, cv::Vec3d& abc) {
 	double x1 = V1[0], y1 = V1[1], z1 = V1[2];
 	double x2 = V2[0], y2 = V2[1], z2 = V2[2];
@@ -34,262 +32,87 @@ void LineEquation(const cv::Vec3d& V1, const cv::Vec3d& V2, cv::Vec3d& abc) {
 	}
 }
 
-//输出obj
+// Output to OBJ file
 void outObj(std::string filePath, cv::Mat lines) {
-	//输出OBJ
+	// Output OBJ file
 	std::ofstream outfile;
 	outfile.open(filePath);
-	//cv::Mat spaceLine;
+
+	// Write vertices
 	for (int i = 0; i < lines.rows; i++) {
 		outfile << "v " << lines.at<float>(i, 0) << " " << lines.at<float>(i, 1) << " " << lines.at<float>(i, 2) << "\n";
 		outfile << "v " << lines.at<float>(i, 3) << " " << lines.at<float>(i, 4) << " " << lines.at<float>(i, 5) << "\n";
 	}
+
+	// Write line segments
 	for (int i = 0; i < lines.rows; i++) {
 		outfile << "l " << i * 2 + 1 << " " << i * 2 + 2 << "\n";
 	}
+
 	outfile.close();
 }
 
+// Compute the distance between two lines
 void line2lineDist(const cv::Mat& l3d, const cv::Mat& cen, const cv::Mat& cen2, cv::Vec3d& O1, cv::Vec3d& O2, double& dist) {
-	// 提取直线上的两个点
+	// Extract two points on each line
 	cv::Vec3d P1 = l3d.row(0).colRange(0, 3);
 	cv::Vec3d P2 = l3d.row(0).colRange(3, 6);
 	cv::Vec3d Q1 = cen.row(0);
 	cv::Vec3d Q2 = cen2.row(0);
 
-	// 计算直线参数方程
+	// Compute line equation parameters
 	cv::Vec3d abc1, abc2;
 	LineEquation(P1, P2, abc1);
 	LineEquation(Q1, Q2, abc2);
 
-	// 两直线向量
+	// Line vectors
 	cv::Vec3d v1 = P2 - P1;
 	cv::Vec3d v2 = Q2 - Q1;
 
-	// 求line_1与公垂线所构成的平面方程A1x+B1y+C1z+D1=0
+	// Compute the plane equation for the line_1 and perpendicular line
 	cv::Vec3d n1 = crossProduct(crossProduct(v1, v2), v1);
 	double A1 = n1[0], B1 = n1[1], C1 = n1[2];
 	double D1 = -A1 * P1[0] - B1 * P1[1] - C1 * P1[2];
 
-	// 求line_2与公垂线所构成的平面方程A2x+B2y+C2z+D2=0
+	// Compute the plane equation for the line_2 and perpendicular line
 	cv::Vec3d n2 = crossProduct(crossProduct(v1, v2), v2);
 	double A2 = n2[0], B2 = n2[1], C2 = n2[2];
 	double D2 = -A2 * Q1[0] - B2 * Q1[1] - C2 * Q1[2];
 
-	// 求line_1上距离直线line_2最近的点O1
+	// Find the closest point O1 on line_1 to line_2
 	double t1 = -(A2 * P1[0] + B2 * P1[1] + C2 * P1[2] + D2) / (A2 * abc1[0] + B2 * abc1[1] + C2 * abc1[2]);
 	O1 = P1 + t1 * abc1;
 
-	// 求line_2上距离直线line_1最近的点O2
+	// Find the closest point O2 on line_2 to line_1
 	double t2 = -(A1 * Q1[0] + B1 * Q1[1] + C1 * Q1[2] + D1) / (A1 * abc2[0] + B1 * abc2[1] + C1 * abc2[2]);
 	O2 = Q1 + t2 * abc2;
 
-	// 计算两点之间的距离
+	// Compute the distance between the two points
 	dist = getDist(O1, O2);
 }
 
+// Calculate the angle between two vectors
 double calculateAngle(const cv::Vec3d& vec1, const cv::Vec3d& vec2) {
-	// 计算点积
+	// Compute dot product
 	double dotProduct = vec1.dot(vec2);
 
-	// 计算向量的范数
+	// Compute the norms of the vectors
 	double normVec1 = cv::norm(vec1);
 	double normVec2 = cv::norm(vec2);
 
-	// 计算夹角的余弦值
+	// Compute the cosine of the angle
 	double cosAngle = dotProduct / (normVec1 * normVec2);
 
-	// 计算并返回夹角
+	// Compute and return the angle
 	double angle = acos(cosAngle);
 
 	return angle;
 }
 
 
-std::vector<std::string> getFiles(const std::filesystem::path& folderPath, const std::string exp) {
-	std::vector<std::string> jpgFiles;
 
-	try {
-		for (const auto& entry : std::filesystem::directory_iterator(folderPath)) {
-			if (entry.is_regular_file() && entry.path().extension() == exp) {
-				jpgFiles.push_back(entry.path().string());
-			}
-		}
-	}
-	catch (const std::filesystem::filesystem_error& e) {
-		std::cerr << "Filesystem error: " << e.what() << std::endl;
-	}
 
-	return jpgFiles;
-}
-
-//void saveMat(std::string save_name, cv::Mat m) {
-//	std::ofstream ofs(save_name, std::ios::out | std::ios::binary);
-//	boost::archive::binary_oarchive oa(ofs);
-//	oa << m;
-//	ofs.close();
-//}
-//
-//void readMat(std::string name, cv::Mat& mat) {
-//	std::ifstream inf1(name, std::ios::in | std::ios::binary);
-//	{
-//		boost::archive::binary_iarchive ia(inf1);
-//		ia >> mat;
-//	}
-//}
-
-//从文件读取数据，每一行读取到一个长字符串中，返回值是总行数
-int readLinesFromFile(std::string filepath, std::vector<std::string>& allLines) {
-	// 打开文件
-	std::ifstream file(filepath);
-	if (!file.is_open()) {
-		std::cerr << "无法打开文件: " << filepath << std::endl;
-		return -1;
-	}
-	std::string line;//一行数据
-	int row = 0;
-	while (std::getline(file, line)) {
-		if (line.empty()) continue;
-		allLines.push_back(line);
-		row++;
-	}
-	file.close();
-	return row;
-}
-
-// 从文本文件读矩阵
-cv::Mat readMatrixFromFile(const std::string& filePath) {
-
-	std::vector<std::string> lines;//存储每一行数据
-	int row = readLinesFromFile(filePath, lines);
-	int col = 0;
-	{
-		std::stringstream ss(lines[0]);
-		std::string tmp_s;
-		while (ss >> tmp_s) {
-			col++;
-		}
-	}
-
-	cv::Mat matrix(row, col, CV_32FC1);
-	for (int i = 0; i < row; i++) {
-		int j = 0;
-		std::stringstream ss(lines[i]);
-		std::string tmp_s;
-		while (ss >> tmp_s) {
-			if (j > col) {
-				std::cout << "wrong cols" << std::endl;
-				return cv::Mat();
-			}
-			matrix.at<float>(i, j) = atof(tmp_s.c_str());
-			j++;
-		}
-	}
-
-	return matrix;
-}
-
-// 从文本文件读矩阵
-cv::Mat readMatrixFromFile(const std::string& filePath, int cols) {
-	// 打开文件
-	std::ifstream file(filePath);
-	if (!file.is_open()) {
-		std::cerr << "无法打开文件: " << filePath << std::endl;
-		//return cv::Mat();
-	}
-
-	std::vector<float> data;
-	float value;
-	int numElements = 0;
-
-	// 读取文件并将数据存储到vector中
-	while (file >> value) {
-		data.push_back(value);
-		numElements++;
-	}
-	file.close();
-
-	// 确定行数
-	int rows = numElements / cols;
-	if (rows * cols != numElements) {
-		std::cerr << "文件内容与指定的列数不匹配" << std::endl;
-		//return cv::Mat();
-	}
-
-	// 将数据转换为Mat对象
-//    cv::Mat matrix(rows, cols, CV_32F, data.data());
-	cv::Mat matrix(rows, cols, CV_32F);
-	int c = 0;
-	for (int row = 0; row < rows; row++) {
-		for (int col = 0; col < cols; col++) {
-			matrix.at<float>(row, col) = data[c];
-			c++;
-		}
-	}
-
-	return matrix;
-}
-
-void readSFM(std::string outfolder, SFM_INFO& sfmInfo, IMG_INFO& imgInfo) {
-	std::vector<std::string> allFiles = getFiles(outfolder, ".P");
-	//    std::vector<cv::Mat> cameras;
-	//    std::vector<cv::Mat> centers;
-	//    std::vector<cv::Mat> lines;
-	imgInfo.cameras.resize(allFiles.size());
-	imgInfo.centers.resize(allFiles.size());
-	imgInfo.lines.resize(allFiles.size());
-	for (int i = 0; i < allFiles.size(); i++) {
-		std::filesystem::path path(allFiles[i]);
-		std::string name = path.stem().string();
-		imgInfo.cameras[atoi(name.c_str())] = readMatrixFromFile(outfolder + "/" + name + ".P");
-
-		//        for(int row=0; row<cameras[atoi(name.c_str())].rows; row++){
-		//            for(int col=0; col<cameras[atoi(name.c_str())].cols; col++){
-		//                std::cout<<cameras[atoi(name.c_str())].at<float>(row,col)<<"  ";
-		//            }
-		//           std::cout<<std::endl;
-		//        }
-
-		imgInfo.centers[atoi(name.c_str())] = readMatrixFromFile(outfolder + "/" + name + ".cen");
-		if (!std::filesystem::exists(outfolder + "/" + name + ".line")) {
-			continue;
-		}
-		imgInfo.lines[atoi(name.c_str())] = readMatrixFromFile(outfolder + "/" + name + ".line");
-	}
-
-	allFiles.clear();
-	allFiles = getFiles(outfolder, ".cam");
-	int matchsize = allFiles.size();
-
-	//    std::vector<cv::Mat> camID; 
-	sfmInfo.camID.resize(matchsize);
-	//    std::vector<cv::Mat> lineID;
-	sfmInfo.lineID.resize(matchsize);
-	//    std::vector<cv::Mat> counters;
-	sfmInfo.counters.resize(matchsize);
-	//    cv::Mat pairID = cv::Mat::zeros(matchsize, 2, CV_32FC1);
-	sfmInfo.pairID = cv::Mat::zeros(matchsize, 2, CV_32FC1);
-
-	for (int i = 0; i < allFiles.size(); i++) {
-		std::filesystem::path path(allFiles[i]);
-		std::string name = path.stem().string();
-
-		sfmInfo.camID[i] = readMatrixFromFile(outfolder + "/" + name + ".cam");
-		sfmInfo.lineID[i] = readMatrixFromFile(outfolder + "/" + name + ".lin");
-		sfmInfo.counters[i] = readMatrixFromFile(outfolder + "/" + name + ".cou");
-
-		sfmInfo.pairID.at<float>(i, 0) = sfmInfo.camID[i].at<float>(0, 0) + 1;
-		sfmInfo.pairID.at<float>(i, 1) = sfmInfo.camID[i].at<float>(0, 1) + 1;
-
-	}
-
-	//    for (int i=0; i<matchsize; i++) {
-	//        std::cout<<pairID.at<float>(i, 0)<<"\t"<<pairID.at<float>(i, 1)<<std::endl;
-	//    }
-	//    std::cout<<std::endl;
-}
-
-// 分割字符串的函数
+// Function to split a string by a delimiter
 std::vector<std::string> split(const std::string& str, char delimiter) {
 	std::vector<std::string> tokens;
 	std::string token;
@@ -310,7 +133,7 @@ std::vector<std::string> split(const std::string& str, char delimiter) {
 	return tokens;
 }
 
-//点到直线距离
+// Calculate the distance from a point to a line
 cv::Mat pt2LineDis(cv::Mat P, cv::Mat A, cv::Mat B) {
 	cv::Mat AB = B - A;
 	cv::Mat AP = P - A;
@@ -324,16 +147,16 @@ cv::Mat pt2LineDis(cv::Mat P, cv::Mat A, cv::Mat B) {
 	return err3;
 }
 
-// 计算多变量正态累积分布函数
+// Calculate the multivariate normal cumulative distribution function
 double mvncdf(const Eigen::VectorXd& x, const Eigen::VectorXd& mean, const Eigen::MatrixXd& cov) {
-	// 计算协方差矩阵的Cholesky分解
+	// Compute the Cholesky decomposition of the covariance matrix
 	Eigen::LLT<Eigen::MatrixXd> llt(cov);
 	Eigen::MatrixXd L = llt.matrixL();
 
-	// 标准化
+	// Standardize the input vector
 	Eigen::VectorXd z = L.triangularView<Eigen::Lower>().solve(x - mean);
 
-	// 使用一维正态分布计算累积分布函数
+	// Use the one-dimensional normal distribution to calculate the CDF
 	boost::math::normal_distribution<> standard_normal(0, 1);
 	double p = 1.0;
 	for (int i = 0; i < z.size(); ++i) {
@@ -344,7 +167,8 @@ double mvncdf(const Eigen::VectorXd& x, const Eigen::VectorXd& mean, const Eigen
 }
 
 
-//像点前方交会
+
+// Triangulate points in front of the camera
 void triangulate(cv::Mat left_cam, cv::Mat right_cam, cv::Mat left_pts, cv::Mat right_pts, cv::Mat& space_pts) {
 	cv::Mat re_space_pts;
 	cv::triangulatePoints(left_cam, right_cam, left_pts.t(), right_pts.t(), re_space_pts);
@@ -355,12 +179,13 @@ void triangulate(cv::Mat left_cam, cv::Mat right_cam, cv::Mat left_pts, cv::Mat 
 	space_pts.col(2) = (re_space_pts.row(2) / re_space_pts.row(3)).t();
 }
 
+// Update the mean and standard deviation
 void getMeanStd(double mean, double stdv, double n, double new_d, double& new_mean, double& new_std) {
 	new_mean = (n * mean + new_d) / (n + 1.0);
 	new_std = std::sqrt(((n - 1.0) * stdv * stdv + n * mean * mean + new_d * new_d - (n + 1.0) * new_mean * new_mean) / n);
 }
 
-// 计算中位数的函数
+// Function to calculate the median
 double median(std::vector<double>& vec) {
 	std::sort(vec.begin(), vec.end());
 	size_t size = vec.size();
@@ -372,12 +197,12 @@ double median(std::vector<double>& vec) {
 	}
 }
 
-// medianStds 函数
+// medianStds function
 double medianStds(const cv::Mat& stdArr) {
-	// 将矩阵重塑为 N x 3
+	// Reshape the matrix to N x 3
 	cv::Mat stdA = stdArr.reshape(1, stdArr.rows * stdArr.cols);
 
-	// 转换为 std::vector 并移除包含零的行
+	// Convert to std::vector and remove rows containing zero
 	std::vector<cv::Vec3f> vecA;
 	for (int i = 0; i < stdA.rows; ++i) {
 		cv::Vec3f row(stdA.at<float>(i, 0), stdA.at<float>(i, 1), stdA.at<float>(i, 2));
@@ -386,12 +211,12 @@ double medianStds(const cv::Mat& stdArr) {
 		}
 	}
 
-	// 如果过滤后为空，返回 0
+	// If filtered vector is empty, return 0
 	if (vecA.empty()) {
 		return 0;
 	}
 
-	// 分别存储每一列的值
+	// Store each column's values
 	std::vector<double> col1, col2, col3;
 	for (const auto& row : vecA) {
 		col1.push_back(row[0]);
@@ -399,106 +224,17 @@ double medianStds(const cv::Mat& stdArr) {
 		col3.push_back(row[2]);
 	}
 
-	// 计算每列的中位数
+	// Calculate the median of each column
 	double stx = median(col1);
 	double sty = median(col2);
 	double stz = median(col3);
 
-	// 计算距离
+	// Calculate the distance
 	double distmean = std::sqrt(std::pow(2 * stx, 2) + std::pow(2 * sty, 2) + std::pow(2 * stz, 2));
 
 	return distmean;
 }
 
-//从文件读取multiPoints
-void normalBuild(std::string outfolder, SFM_INFO& sfmInfo, IMG_INFO& imgInfo, ARR_INFO& arrInfo) {
-	std::cout << "Start Norm Build:..." << std::endl;
-	auto start = std::chrono::high_resolution_clock::now();
-
-	cv::Mat imageConnect = cv::Mat::zeros(imgInfo.cameras.size(), imgInfo.cameras.size(), CV_16SC1);
-	for (int i = 0; i < sfmInfo.pairID.rows; i++) {
-		int row = sfmInfo.pairID.at<float>(i, 0) - 1;
-		int col = sfmInfo.pairID.at<float>(i, 1) - 1;
-		imageConnect.at<short>(row, col) = i + 1;
-		imageConnect.at<short>(col, row) = i + 1;
-	}
-
-	arrInfo.meanArr = cv::Mat::zeros(sfmInfo.pairID.rows, imgInfo.cameras.size(), CV_32FC3);
-	arrInfo.stdArr = cv::Mat::zeros(sfmInfo.pairID.rows, imgInfo.cameras.size(), CV_32FC3);
-	cv::Mat counterArr = cv::Mat::zeros(sfmInfo.pairID.rows, imgInfo.cameras.size(), CV_32FC1);
-
-	std::vector<std::string> allLinesFromMP;
-	int allPtsCount = readLinesFromFile(outfolder + "\\multiPoints.txt", allLinesFromMP);
-	for (int i = 0; i < allPtsCount; i++) {
-		std::vector<std::string> sLine = split(allLinesFromMP[i], ',');
-		if (sLine.size() < 3) continue;
-		cv::Mat subpoints = cv::Mat(sLine.size(), 3, CV_32FC1);
-		for (int j = 0; j < sLine.size(); j++) {
-			std::stringstream ss(sLine[j]);
-			std::string tmp_s;
-			ss >> tmp_s; subpoints.at<float>(j, 0) = atof(tmp_s.c_str());
-			ss >> tmp_s; subpoints.at<float>(j, 1) = atof(tmp_s.c_str());
-			ss >> tmp_s; subpoints.at<float>(j, 2) = atof(tmp_s.c_str());
-		}
-
-		for (int indx_i = 0; indx_i < subpoints.rows; indx_i++) {
-			int idi = subpoints.at<float>(indx_i, 0);
-			for (int indx_j = indx_i + 1; indx_j < sLine.size(); indx_j++) {
-				int idj = subpoints.at<float>(indx_j, 0);
-				int pairID = imageConnect.at<short>(idi, idj) - 1;
-				if (pairID == -1) continue;
-
-				auto cam1 = imgInfo.cameras[idi];
-				auto cam2 = imgInfo.cameras[idj];
-
-				cv::Mat re_space_pts;
-				triangulate(cam1, cam2, subpoints.row(indx_i).colRange(1, 3), subpoints.row(indx_j).colRange(1, 3), re_space_pts);
-
-				for (int indx_k = 0; indx_k < sLine.size(); indx_k++) {
-					int idk = subpoints.at<float>(indx_k, 0);
-					if (idi == idk || idj == idk) continue;
-					auto cam3 = imgInfo.cameras[idk];
-					auto cen3 = imgInfo.centers[idk];
-
-					cv::Mat pt3 = (cv::Mat_<float>(3, 1) << subpoints.at<float>(indx_k, 1), subpoints.at<float>(indx_k, 2), 1.0);
-					cv::Mat s_cam3 = cam3.rowRange(0, 3).colRange(0, 3);
-					cv::Mat ray = s_cam3.inv() * pt3;
-
-					cv::Mat pt2l = pt2LineDis(re_space_pts.t(), cen3.t(), cen3.t() + 2 * ray);
-
-					counterArr.at<float>(pairID, idk) = counterArr.at<float>(pairID, idk) + 1;
-
-					double m0, s0;
-					getMeanStd(arrInfo.meanArr.at<cv::Vec3f>(pairID, idk)[0], arrInfo.stdArr.at<cv::Vec3f>(pairID, idk)[0],
-						counterArr.at<float>(pairID, idk), pt2l.at<float>(0), m0, s0);
-					arrInfo.meanArr.at<cv::Vec3f>(pairID, idk)[0] = m0;
-					arrInfo.stdArr.at<cv::Vec3f>(pairID, idk)[0] = s0;
-
-					double m1, s1;
-					getMeanStd(arrInfo.meanArr.at<cv::Vec3f>(pairID, idk)[1], arrInfo.stdArr.at<cv::Vec3f>(pairID, idk)[1],
-						counterArr.at<float>(pairID, idk), pt2l.at<float>(1), m1, s1);
-					arrInfo.meanArr.at<cv::Vec3f>(pairID, idk)[1] = m1;
-					arrInfo.stdArr.at<cv::Vec3f>(pairID, idk)[1] = s1;
-
-					double m2, s2;
-					getMeanStd(arrInfo.meanArr.at<cv::Vec3f>(pairID, idk)[2], arrInfo.stdArr.at<cv::Vec3f>(pairID, idk)[2],
-						counterArr.at<float>(pairID, idk), pt2l.at<float>(2), m2, s2);
-					arrInfo.meanArr.at<cv::Vec3f>(pairID, idk)[2] = m2;
-					arrInfo.stdArr.at<cv::Vec3f>(pairID, idk)[2] = s2;
-				}
-			}
-		}
-	}
-	arrInfo.distmean = medianStds(arrInfo.stdArr);
-	std::cout << "distmean = " << arrInfo.distmean << std::endl;
-
-	//saveMat(outfolder + "\\meanArr.m", arrInfo.meanArr);
-	//saveMat(outfolder + "\\stdArr.m", arrInfo.stdArr);
-
-	auto end = std::chrono::high_resolution_clock::now();
-	double duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-	std::cout << "End Norm Build, time use: " << duration / 1000.0 << "s" << std::endl;
-}
 
 //直接使用内存中的multiPoints
 void normalBuild(std::vector<cv::Mat> multiPoints, SFM_INFO& sfmInfo, IMG_INFO& imgInfo, ARR_INFO& arrInfo) {
@@ -1892,7 +1628,7 @@ cv::Mat multiReconstruction(cv::Mat lines3D, IMG_INFO imgInfo, SPACE_REC spaceRe
 }
 
 
-void lineCluster(SfMManager* sfm, MergeProcess* mergeProc, std::string inputFolder) {
+void lineCluster(SfMManager* sfm, MergeProcess* mergeProc) {
 	IMG_INFO imgInfo;
 	SFM_INFO sfmInfo;
 	ARR_INFO arrInfo;
@@ -1997,11 +1733,11 @@ void lineCluster(SfMManager* sfm, MergeProcess* mergeProc, std::string inputFold
 		}
 	}
 
-	outObj(inputFolder + "\\elsrpp.obj", outMat);
+	outObj(sfm->outFolder + "\\elsrpp.obj", outMat);
 	std::string linesFile, camsFile, nameFile;
-	linesFile = inputFolder + "\\spaceLines.txt";
-	camsFile = inputFolder + "\\cams.txt";
-	nameFile = inputFolder + "\\camName.txt";
+	linesFile = sfm->outFolder + "\\spaceLines.txt";
+	camsFile = sfm->outFolder + "\\cams.txt";
+	nameFile = sfm->outFolder + "\\camName.txt";
 
 
 	std::ofstream nf;

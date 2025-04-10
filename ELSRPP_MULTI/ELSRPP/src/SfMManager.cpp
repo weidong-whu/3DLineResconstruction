@@ -1,418 +1,395 @@
 #include "SfMManager.h"
-#include"BasicMath.h"
+#include "BasicMath.h"
+#include "Parameters.h"
 #include <fstream>
-template <typename T>
-void write2txt(T* mat, int rows, int cols, std::string filename)
-{
-	std::ofstream writemat(filename, std::ios::out);
-	for (int i = 0; i < rows; i++)
-	{
-		for (int j = 0; j < cols; j++)
-		{
-			writemat << mat[j] << " ";
-		}
-		writemat << std::endl;
-		mat = mat + cols;
-	}
-	writemat.close();
-}
-
 
 cv::Mat SfMManager::iCamsRT(int i)
 {
-	return camsRT[i];
+    return camsRT[i];
 }
 
 void SfMManager::addImSize(int row, int col, int i)
 {
-	imSizes.at<float>(i, 0) = row;
-	imSizes.at<float>(i, 1) = col;
+    imSizes.at<float>(i, 0) = row;
+    imSizes.at<float>(i, 1) = col;
 }
 
 void SfMManager::iniImageSize()
 {
-	imSizes = cv::Mat(cams_number, 2, CV_32FC1);
-	imageLineSize.resize(cams_number,0);
+    imSizes = cv::Mat(cams_number, 2, CV_32FC1);
+    imageLineSize.resize(cams_number, 0);
 }
 
-void SfMManager::setImageLineSize(int lineSize,int i)
+void SfMManager::setImageLineSize(int lineSize, int i)
 {
-	imageLineSize[i] = lineSize;
+    imageLineSize[i] = lineSize;
 }
 
 void SfMManager::iniCameraSize()
 {
-	cameraMat = cv::Mat(cams_number, 12, CV_32FC1);
-	camera33Trans= cv::Mat(cams_number, 9, CV_32FC1);
+    cameraMat = cv::Mat(cams_number, 12, CV_32FC1);
+    camera33Trans = cv::Mat(cams_number, 9, CV_32FC1);
 }
 
-SfMManager::SfMManager(std::string inputFolder, std::string nvmFile,int NBINS)
+SfMManager::SfMManager(std::string params_prefix, std::string imageFolder, std::string outputFolder)
 {
-	sfmType = "vsfm";
-	input_folder_ = inputFolder;
-	nvmFile_ = nvmFile;
-	bins = NBINS;
-}
+    if (params_prefix.size() >= 3 && params_prefix.compare(params_prefix.size() - 3, 3, "nvm") == 0)
+    {
+        sfmType = "vsfm";
+        nvmFile_ = params_prefix;
+    }
+    else
+    {
 
-SfMManager::SfMManager(std::string inputFolder, int NBINS)
-{
-	input_folder_ = inputFolder;
-	bins = NBINS;
-	sfmType = "pixel4d";
+        this->params_prefix = params_prefix;
+        sfmType = "pixel4d";
+    }
+
+    inFolder = imageFolder;
+    outFolder = outputFolder;
+    bins = ADAPTIVE_BINS;
+
+    createOutputDirectory(outputFolder);
 }
 
 std::string SfMManager::inputFolder()
 {
-	return input_folder_;
+    return inFolder;
 }
 
 std::string SfMManager::nvmFile()
 {
-	return nvmFile_;
+    return nvmFile_;
 }
 
-void SfMManager::addImagePoints(int imageID,cv::Mat pt)
+void SfMManager::addImagePoints(int imageID, cv::Mat pt)
 {
-	imagePoints[imageID].push_back(pt);
+    imagePoints[imageID].push_back(pt);
 }
 
 void SfMManager::addJunctionLines(int imageID, cv::Mat junc)
 {
-	junctionLines[imageID].push_back(junc);
+    junctionLines[imageID].push_back(junc);
 }
 
-cv::Mat* SfMManager::iJunctionLines(int imageID)
+cv::Mat *SfMManager::iJunctionLines(int imageID)
 {
-	return &junctionLines[imageID];
+    return &junctionLines[imageID];
 }
-cv::Mat* SfMManager::iParraLines(int imageID)
+cv::Mat *SfMManager::iParraLines(int imageID)
 {
-	return &parraLines[imageID];
-}
-
-cv::Mat* SfMManager::iImageLines(int imageID)
-{
-	return &imageLines[imageID];
+    return &parraLines[imageID];
 }
 
-float* SfMManager::ImageLineSingle(int imageID, int lineID)
+cv::Mat *SfMManager::iImageLines(int imageID)
 {
-	return (float*)imageLines[imageID].data + imageLines[imageID].cols * lineID;
+    return &imageLines[imageID];
 }
 
+float *SfMManager::ImageLineSingle(int imageID, int lineID)
+{
+    return (float *)imageLines[imageID].data + imageLines[imageID].cols * lineID;
+}
 
 void SfMManager::initialImagePoints()
 {
-	imagePoints.resize(cams_number);
-	junctionLines.resize(cams_number);
-	imageLines.resize(cams_number);
-	parraLines.resize(cams_number);
+    imagePoints.resize(cams_number);
+    junctionLines.resize(cams_number);
+    imageLines.resize(cams_number);
+    parraLines.resize(cams_number);
 }
 
 void SfMManager::addImageNames(std::string image_name)
 {
-	imageNames.push_back(image_name);
-	cams_number++;
+    imageNames.push_back(image_name);
+    cams_number++;
 }
 
 std::string SfMManager::iImageNames(int i)
 {
-	return imageNames[i];
+    return imageNames[i];
 }
 
 void SfMManager::addCamsFocals(float focal_length)
 {
-	camsFocals.push_back(focal_length);
+    camsFocals.push_back(focal_length);
 }
 
-
-float  SfMManager::iCamsFocals(int i)
+float SfMManager::iCamsFocals(int i)
 {
-	return camsFocals[i];
+    return camsFocals[i];
 }
 
 void SfMManager::addCamsRT(cv::Mat Rt)
 {
-	camsRT.push_back(Rt);
+    camsRT.push_back(Rt);
 }
 
 void SfMManager::addCamsCenter(cv::Mat C)
 {
-	camsCenters.push_back(C);
+    camsCenters.push_back(C);
 }
 
 void SfMManager::add_points_space3D(cv::Mat pos3D)
 {
-	points3D.push_back(pos3D);
+    points3D.push_back(pos3D);
 }
 
 void SfMManager::write_points_space3D()
 {
-	
-	write2txt((float*)points3D.data, points3D.rows, points3D.cols, this->inputFolder() + "//output//"+ "spcaepoints.pts");
+
+    write2txt((float *)points3D.data, points3D.rows, points3D.cols,
+              this->inputFolder() + "//output//" + "spcaepoints.pts");
 }
 
 int SfMManager::camsNumber()
 {
-	return cams_number;
+    return cams_number;
 }
 
-float* SfMManager::points3D_ptr()
+float *SfMManager::points3D_ptr()
 {
-	return (float*)points3D.data;
+    return (float *)points3D.data;
 }
-
 
 cv::Mat SfMManager::iCameraMat(int i)
 {
-	return  cameraMat.rowRange(i, i + 1).clone().reshape(0, 3);
+    return cameraMat.rowRange(i, i + 1).clone().reshape(0, 3);
 }
 
 void SfMManager::writeCmaratxt()
 {
-	for (int i = 0; i < cameraMat.rows; i++)
-	{
-		cv::Mat icmaera= cameraMat.rowRange(i, i + 1).clone().reshape(0, 3);
-		write2txt((float*)icmaera.data, icmaera.rows, icmaera.cols, input_folder_ + "//output//" + std::to_string(i) + ".P");
-	}
-	
+    for (int i = 0; i < cameraMat.rows; i++)
+    {
+        cv::Mat icmaera = cameraMat.rowRange(i, i + 1).clone().reshape(0, 3);
+        write2txt((float *)icmaera.data, icmaera.rows, icmaera.cols,
+                  inFolder + "//output//" + std::to_string(i) + ".P");
+    }
 }
 
-void SfMManager::iImSize(int i, int& row, int& col)
+void SfMManager::iImSize(int i, int &row, int &col)
 {
-	row = imSizes.at<float>(i, 0);
-	col = imSizes.at<float>(i, 1);
+    row = imSizes.at<float>(i, 0);
+    col = imSizes.at<float>(i, 1);
 }
 
 void SfMManager::writeImagePoints()
 {
-	for (int i = 0; i < imagePoints.size(); i++)
-	{
-		write2txt((float*)imagePoints[i].data, imagePoints[i].rows, imagePoints[i].cols, input_folder_ + "//output//" + std::to_string(i) + ".pts");
-	}
+    for (int i = 0; i < imagePoints.size(); i++)
+    {
+        write2txt((float *)imagePoints[i].data, imagePoints[i].rows, imagePoints[i].cols,
+                  inFolder + "//output//" + std::to_string(i) + ".pts");
+    }
 }
 
-void SfMManager::addTrainPrioi(cv::Mat trainPDF,cv::Mat mean_std_, cv::Mat maxv_)
+void SfMManager::addTrainPrioi(cv::Mat trainPDF, cv::Mat mean_std_, cv::Mat maxv_)
 {
-	trainPDF.copyTo(train_prioi);
-	mean_std_.copyTo(mean_std);
-	maxv_.copyTo(max_error);
+    trainPDF.copyTo(train_prioi);
+    mean_std_.copyTo(mean_std);
+    maxv_.copyTo(max_error);
 }
-
-
 
 void SfMManager::writeCameraCenters()
 {
-	for (int i = 0; i < cameraMat.rows; i++)
-	{
-		cv::Mat icmaera = camsCenters.rowRange(i, i + 1).clone().reshape(0, 1);
-		write2txt((float*)icmaera.data, icmaera.rows, icmaera.cols, input_folder_ + "//output//" + std::to_string(i) + ".cen");
-	}
-
-	
+    for (int i = 0; i < cameraMat.rows; i++)
+    {
+        cv::Mat icmaera = camsCenters.rowRange(i, i + 1).clone().reshape(0, 1);
+        write2txt((float *)icmaera.data, icmaera.rows, icmaera.cols,
+                  inFolder + "//output//" + std::to_string(i) + ".cen");
+    }
 }
 
-
-
-float* SfMManager::iCameraMatPtr(int i)
+float *SfMManager::iCameraMatPtr(int i)
 {
-	return (float*)cameraMat.data+cameraMat.cols * i;
+    return (float *)cameraMat.data + cameraMat.cols * i;
 }
 
-std::vector<std::string>* SfMManager::allImageNames()
+std::vector<std::string> *SfMManager::allImageNames()
 {
-	return &imageNames;
+    return &imageNames;
 }
 
-std::vector<float>* SfMManager::allCamsFocals()
+std::vector<float> *SfMManager::allCamsFocals()
 {
-	return &camsFocals;
+    return &camsFocals;
 }
 
-std::vector<cv::Mat>* SfMManager::allCameraRTMat()
+std::vector<cv::Mat> *SfMManager::allCameraRTMat()
 {
-	return &camsRT;
+    return &camsRT;
 }
 
-cv::Mat* SfMManager::allPoints3D()
+cv::Mat *SfMManager::allPoints3D()
 {
-	return &points3D;
+    return &points3D;
 }
 
 void SfMManager::analysis_spacedis()
 {
-	
-	std::vector<std::vector<float>>point_depth(camsNumber());
-	float x, y, z, depth;
-	int ptid;
-	float* CM_ptr;
 
-	for (int i = 0; i < camsNumber(); i++)
-	{
-		CM_ptr = iCameraMatPtr(i);
+    std::vector<std::vector<float>> point_depth(camsNumber());
+    float x, y, z, depth;
+    int ptid;
+    float *CM_ptr;
 
-		for (int j = 0; j < imagePoints[i].rows; j++)
-		{	
-			// x = imagePoints[i].at<float>(j, 0);
-		    // y = imagePoints[i].at<float>(j, 1);
-			ptid = imagePoints[i].at<float>(j, 2) - 1;
+    for (int i = 0; i < camsNumber(); i++)
+    {
+        CM_ptr = iCameraMatPtr(i);
 
-			x = points3D.at<float>(ptid, 0);
-			y = points3D.at<float>(ptid, 1);
-			z = points3D.at<float>(ptid, 2);
+        for (int j = 0; j < imagePoints[i].rows; j++)
+        {
+            // x = imagePoints[i].at<float>(j, 0);
+            // y = imagePoints[i].at<float>(j, 1);
+            ptid = imagePoints[i].at<float>(j, 2) - 1;
 
-			depth = CM_ptr[11]
-				  + CM_ptr[8] * x
-				  + CM_ptr[9] * y
-				  + CM_ptr[10] * z;
+            x = points3D.at<float>(ptid, 0);
+            y = points3D.at<float>(ptid, 1);
+            z = points3D.at<float>(ptid, 2);
 
-			point_depth[i].push_back(depth);
-		}
-	}
+            depth = CM_ptr[11] + CM_ptr[8] * x + CM_ptr[9] * y + CM_ptr[10] * z;
 
-	float pt[2], pt_space[2];
-	int imr, imc;
+            point_depth[i].push_back(depth);
+        }
+    }
 
-	float ray1[3];
-	float ray2[3];
-	float ray2_space[3];
+    float pt[2], pt_space[2];
+    int imr, imc;
 
-	std::vector<float> space_shift;
-	std::vector<float> space_shift_space;
+    float ray1[3];
+    float ray2[3];
+    float ray2_space[3];
 
-	for (int i = 0; i < point_depth.size(); i++)
-	{
-		if (imagePoints[i].rows==0)
-			continue;
-		float* M1 = this->iCamera33TransPtr(i);
-		ray1[0] = M1[2];
-		ray1[1] = M1[5];
-		ray1[2] = M1[8];
+    std::vector<float> space_shift;
+    std::vector<float> space_shift_space;
 
-		std::sort(point_depth[i].begin(), point_depth[i].end());
+    for (int i = 0; i < point_depth.size(); i++)
+    {
+        if (imagePoints[i].rows == 0)
+            continue;
+        float *M1 = this->iCamera33TransPtr(i);
+        ray1[0] = M1[2];
+        ray1[1] = M1[5];
+        ray1[2] = M1[8];
 
-		float mid_depth = point_depth[i][point_depth[i].size() / 2];
+        std::sort(point_depth[i].begin(), point_depth[i].end());
 
-		this->iImSize(i, imr, imc);
+        float mid_depth = point_depth[i][point_depth[i].size() / 2];
 
-		pt[0] = imc / 2.0 + 2.5;
-		pt[1] = imr / 2.0 + 2.5;
+        this->iImSize(i, imr, imc);
 
-		pt_space[0] = imc / 2.0 + 0.5;
-		pt_space[1] = imr / 2.0 + 0.5;
+        pt[0] = imc / 2.0 + 2.5;
+        pt[1] = imr / 2.0 + 2.5;
 
-		solverAxb(M1, pt, ray2);
-		solverAxb(M1, pt_space, ray2_space);
+        pt_space[0] = imc / 2.0 + 0.5;
+        pt_space[1] = imr / 2.0 + 0.5;
 
-		float cos_vec = abs(cos_vec3(ray1, ray2));
-		float cos_vec_space = abs(cos_vec3(ray1, ray2_space));
+        solverAxb(M1, pt, ray2);
+        solverAxb(M1, pt_space, ray2_space);
 
-		float space_dis=std::tanf(std::acosf(cos_vec))* mid_depth;
-		float space_dis_space = std::tanf(std::acosf(cos_vec_space)) * mid_depth;
+        float cos_vec = abs(cos_vec3(ray1, ray2));
+        float cos_vec_space = abs(cos_vec3(ray1, ray2_space));
 
-		space_shift.push_back(space_dis);
-		space_shift_space.push_back(space_dis_space);
-	}
+        float space_dis = std::tanf(std::acosf(cos_vec)) * mid_depth;
+        float space_dis_space = std::tanf(std::acosf(cos_vec_space)) * mid_depth;
 
-	std::sort(space_shift.begin(), space_shift.end());
-	std::sort(space_shift_space.begin(), space_shift_space.end());
+        space_shift.push_back(space_dis);
+        space_shift_space.push_back(space_dis_space);
+    }
 
-	
-	shift_median = space_shift[space_shift.size() / 2];
-	shift_median_min = space_shift_space[space_shift_space.size()/2];
+    std::sort(space_shift.begin(), space_shift.end());
+    std::sort(space_shift_space.begin(), space_shift_space.end());
 
-	printf("shift_median %f shift_median_space %f \n", shift_median, shift_median_min);
+    shift_median = space_shift[space_shift.size() / 2];
+    shift_median_min = space_shift_space[space_shift_space.size() / 2];
 
-
-
+    printf("shift_median %f shift_median_space %f \n", shift_median, shift_median_min);
 }
 
-void SfMManager::lineSize(std::vector<int>& linesizevec)
+void SfMManager::lineSize(std::vector<int> &linesizevec)
 {
-	for (int i = 0; i < imageLines.size(); i++)
-	{
-		linesizevec.push_back(imageLines[i].rows);
-	}
+    for (int i = 0; i < imageLines.size(); i++)
+    {
+        linesizevec.push_back(imageLines[i].rows);
+    }
 }
 
-float* SfMManager::adaptivePDF()
+float *SfMManager::adaptivePDF()
 {
-	return (float*)train_prioi.data;
+    return (float *)train_prioi.data;
 }
 
-void SfMManager::getTrainCell(int ind, float& mean, float& std, float& max_err)
+void SfMManager::getTrainCell(int ind, float &mean, float &std, float &max_err)
 {
-	mean = mean_std.at<float>(ind, 0);
-	std = mean_std.at<float>(ind, 1);
-	max_err= max_error.at<float>(ind, 0);
-
+    mean = mean_std.at<float>(ind, 0);
+    std = mean_std.at<float>(ind, 1);
+    max_err = max_error.at<float>(ind, 0);
 }
 
 void SfMManager::addCameraBySize(int rows, int cols, int i)
 {
-	cv::Mat K = cv::Mat::zeros(3, 3, CV_32FC1);
-	K.at<float>(0, 0) = iCamsFocals(i);
-	K.at<float>(1, 1) = iCamsFocals(i);
-	K.at<float>(0, 2) = cols / 2.0;
-	K.at<float>(1, 2) = rows / 2.0;
-	K.at<float>(2, 2) = 1;
+    cv::Mat K = cv::Mat::zeros(3, 3, CV_32FC1);
+    K.at<float>(0, 0) = iCamsFocals(i);
+    K.at<float>(1, 1) = iCamsFocals(i);
+    K.at<float>(0, 2) = cols / 2.0;
+    K.at<float>(1, 2) = rows / 2.0;
+    K.at<float>(2, 2) = 1;
 
-	cv::Mat CM_i = K * camsRT[i];
-	for (int k = 0; k < 12; k++)
-		cameraMat.at<float>(i, k) = ((float*)CM_i.data)[k];
+    cv::Mat CM_i = K * camsRT[i];
+    for (int k = 0; k < 12; k++)
+        cameraMat.at<float>(i, k) = ((float *)CM_i.data)[k];
 
-	cv::Mat M = CM_i.colRange(0, 3).clone().t();
-	for (int k = 0; k < 9; k++)
-		camera33Trans.at<float>(i, k) = ((float*)M.data)[k];
-
+    cv::Mat M = CM_i.colRange(0, 3).clone().t();
+    for (int k = 0; k < 9; k++)
+        camera33Trans.at<float>(i, k) = ((float *)M.data)[k];
 }
 
-void SfMManager::addCamera(cv::Mat CM_i,int i)
+void SfMManager::addCamera(cv::Mat CM_i, int i)
 {
 
-	for (int k = 0; k < 12; k++)
-		cameraMat.at<float>(i, k) = ((float*)CM_i.data)[k];
+    for (int k = 0; k < 12; k++)
+        cameraMat.at<float>(i, k) = ((float *)CM_i.data)[k];
 
-	cv::Mat M = CM_i.colRange(0, 3).clone().t();
-	for (int k = 0; k < 9; k++)
-		camera33Trans.at<float>(i, k) = ((float*)M.data)[k];
-
+    cv::Mat M = CM_i.colRange(0, 3).clone().t();
+    for (int k = 0; k < 9; k++)
+        camera33Trans.at<float>(i, k) = ((float *)M.data)[k];
 }
 
-cv::Mat* SfMManager::imSizeMat()
+cv::Mat *SfMManager::imSizeMat()
 {
-	return &imSizes;
+    return &imSizes;
 }
 
-cv::Mat* SfMManager::allCameraMat()
+cv::Mat *SfMManager::allCameraMat()
 {
-	return &cameraMat;
+    return &cameraMat;
 }
 
 int SfMManager::iImageLineSize(int i)
 {
-	return imageLineSize[i];
+    return imageLineSize[i];
 }
 
-float* SfMManager::iCamera33TransPtr(int i)
+float *SfMManager::iCamera33TransPtr(int i)
 {
-	return (float*)(camera33Trans.data) + i* camera33Trans.cols;
+    return (float *)(camera33Trans.data) + i * camera33Trans.cols;
 }
 
-float* SfMManager::iCameraCenterPtr(int i)
+float *SfMManager::iCameraCenterPtr(int i)
 {
-	return (float*)(camsCenters.data) + i * 3;
+    return (float *)(camsCenters.data) + i * 3;
 }
 
-cv::Mat* SfMManager::iImagePointsPtr(int i)
+cv::Mat *SfMManager::iImagePointsPtr(int i)
 {
-	return &imagePoints[i];
+    return &imagePoints[i];
 }
 
-cv::Mat SfMManager::iCameraCenter(int i) {
-	return camsCenters.row(i);
+cv::Mat SfMManager::iCameraCenter(int i)
+{
+    return camsCenters.row(i);
 }
 
-cv::Mat SfMManager::getImageLines(int imageID) {
-	return imageLines[imageID];
+cv::Mat SfMManager::getImageLines(int imageID)
+{
+    return imageLines[imageID];
 }

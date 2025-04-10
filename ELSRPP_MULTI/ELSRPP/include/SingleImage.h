@@ -11,4 +11,4 @@ void parallel_2lines(float* lines, int size, float costhre, float distmin, float
 void callCrossPt(cv::Mat* lp_Mf, float* lines, int size, float costhre, float dist);
 
 int processImage(SfMManager* sfm, int i,
-	float costhre, float dist, int inter_support_num, int maxwidth, int uselsd,int maxlineNum, std::string lineFolder = "", std::string lineExt = "");
+	float costhre, float dist, int inter_support_num, int maxwidth, std::string lineType,int maxlineNum);

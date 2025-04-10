@@ -1,62 +1,48 @@
-﻿//std
+﻿#include "callELSRPP.h"
 #include <iostream>
-#include <vector>
 #include <string>
-#include <math.h>
-#include <ctime>
-#include <sys/stat.h>
-#include <thread>
-//mine
-#include "SingleImage.h"
-#include "PairMatch.h"
-#include "LineSweep.h"
-#include "Parameters.h"
-
-#include "sfm_analysis.h"
-#include "IO.h"
-#include "BasicMath.h"
-#include "LineCluster.h"
-
-#include <fstream>
-#include <windows.h>
-#include <time.h>
-#include <filesystem>
 #include <tclap/CmdLine.h>
 #include <tclap/CmdLineInterface.h>
+#include <time.h>
+#include <vector>
 
-#include"sfm_analysis.h"
-
+// Define a very small constant L3D_EPS
 #define L3D_EPS 1e-12
 
-template<typename Derived>
-cv::Mat eigenToCvMat32FC1(const Eigen::MatrixBase<Derived>& mat) {
-    Eigen::MatrixXf mat_float = mat.template cast<float>();  // 转 float
+// Convert an Eigen matrix to an OpenCV 32-bit single-channel matrix
+template <typename Derived> cv::Mat eigenToCvMat32FC1(const Eigen::MatrixBase<Derived> &mat)
+{
+    // Convert to float type
+    Eigen::MatrixXf mat_float = mat.template cast<float>();
 
     cv::Mat result(mat_float.rows(), mat_float.cols(), CV_32FC1);
+    // Copy row by row and column by column to ensure the order is consistent
     for (int i = 0; i < mat_float.rows(); ++i)
         for (int j = 0; j < mat_float.cols(); ++j)
-            result.at<float>(i, j) = mat_float(i, j);  // 按行列 copy，确保顺序一致
+            result.at<float>(i, j) = mat_float(i, j);
 
     return result;
 }
 
-// helper function for point triangulation
-Eigen::Vector3d linearHomTriangulation(std::list<std::pair<size_t, Eigen::Vector2d> >& obs,
-    std::vector<Eigen::MatrixXd>& P)
+// Helper function for point triangulation
+Eigen::Vector3d linearHomTriangulation(std::list<std::pair<size_t, Eigen::Vector2d>> &obs,
+                                       std::vector<Eigen::MatrixXd> &P)
 {
     if (obs.size() == 0 || P.size() == 0)
         return Eigen::Vector3d(0, 0, 0);
 
     std::vector<Eigen::MatrixXd> Sx(obs.size(), Eigen::MatrixXd::Zero(2, 3));
     Eigen::MatrixXd A = Eigen::MatrixXd::Zero(obs.size() * 2, 4);
-    std::list<std::pair<size_t, Eigen::Vector2d> >::iterator it = obs.begin();
+    std::list<std::pair<size_t, Eigen::Vector2d>>::iterator it = obs.begin();
     for (size_t i = 0; it != obs.end(); ++i, ++it)
     {
         Eigen::Vector2d pt = (*it).second;
         size_t camID = (*it).first;
 
-        Sx[i](0, 1) = -1; Sx[i](0, 2) = pt.y();
-        Sx[i](1, 0) = 1; Sx[i](1, 2) = -pt.x();
+        Sx[i](0, 1) = -1;
+        Sx[i](0, 2) = pt.y();
+        Sx[i](1, 0) = 1;
+        Sx[i](1, 2) = -pt.x();
 
         A.block<2, 4>(i * 2, 0) = Sx[i] * P[camID];
     }
@@ -78,32 +64,29 @@ Eigen::Vector3d linearHomTriangulation(std::list<std::pair<size_t, Eigen::Vector
     return Eigen::Vector3d(X(0), X(1), X(2));
 }
 
-int read_pixel4d(
-    std::string imageFolder,
-	std::string params_prefix,
-	SfMManager* sfm,
-	MatchManager* match,
-	int knn_image,
-	int connectionNum) {
+// Read pixel data from Pix4D files
+int read_pixel4d(SfMManager *sfm, MatchManager *match)
+{
 
+    std::string file1 = sfm->params_prefix + "calibrated_camera_parameters.txt";
+    std::string file2 = sfm->params_prefix + "tp_pix4d.txt";
 
-    std::string file1 = params_prefix + "calibrated_camera_parameters.txt";
-    std::string file2 = params_prefix + "tp_pix4d.txt";
     boost::filesystem::path pf1(file1);
     boost::filesystem::path pf2(file2);
+
+    // Check if Pix4D files exist
     if (!boost::filesystem::exists(pf1) || !boost::filesystem::exists(pf2))
     {
         std::cerr << "pix4d file '" << file1 << "' or '" << std::endl << file2 << "' does not exist!" << std::endl;
         return -1;
     }
 
-
-    // camera parameter file
+    // Camera parameter file
     std::ifstream pix4d_cam_file;
     pix4d_cam_file.open(file1.c_str());
 
     std::string pix4d_cam_line;
-    // ignore descriptions...
+    // Ignore descriptions...
     while (std::getline(pix4d_cam_file, pix4d_cam_line))
     {
         if (pix4d_cam_line.length() < 2)
@@ -114,7 +97,7 @@ int read_pixel4d(
     std::vector<cv::Mat> Cs;
     std::vector<cv::Mat> cams;
 
-    // read camera data (sequentially)
+    // Read camera data (sequentially)
     std::map<std::string, size_t> img2pos;
     std::map<size_t, std::string> pos2img;
     std::vector<std::string> cams_filenames;
@@ -125,13 +108,12 @@ int read_pixel4d(
     std::vector<Eigen::Vector3d> cams_radial_dist;
     std::vector<Eigen::Vector2d> cams_tangential_dist;
 
-  
     while (std::getline(pix4d_cam_file, pix4d_cam_line))
     {
         if (pix4d_cam_line.length() < 5)
             break;
 
-        // filename
+        // Filename
         std::stringstream pix4d_stream(pix4d_cam_line);
         std::string filename, width, height;
         pix4d_stream >> filename >> width >> height;
@@ -143,7 +125,7 @@ int read_pixel4d(
         pos2img[cams_filenames.size()] = rawname;
         cams_filenames.push_back(filename);
 
-        // intrinsics
+        // Intrinsics
         Eigen::Matrix3d K;
         for (size_t i = 0; i < 3; ++i)
         {
@@ -154,7 +136,7 @@ int read_pixel4d(
         }
         cams_intrinsic.push_back(K);
 
-        // radial distortion
+        // Radial distortion
         Eigen::Vector3d radial;
         std::getline(pix4d_cam_file, pix4d_cam_line);
         pix4d_stream.clear();
@@ -162,7 +144,7 @@ int read_pixel4d(
         pix4d_stream >> radial(0) >> radial(1) >> radial(2);
         cams_radial_dist.push_back(radial);
 
-        // tangential distortion
+        // Tangential distortion
         Eigen::Vector2d tangential;
         std::getline(pix4d_cam_file, pix4d_cam_line);
         pix4d_stream.clear();
@@ -170,14 +152,14 @@ int read_pixel4d(
         pix4d_stream >> tangential(0) >> tangential(1);
         cams_tangential_dist.push_back(tangential);
 
-        // translation
+        // Translation
         Eigen::Vector3d t;
         std::getline(pix4d_cam_file, pix4d_cam_line);
         pix4d_stream.clear();
         pix4d_stream.str(pix4d_cam_line);
         pix4d_stream >> t(0) >> t(1) >> t(2);
 
-        // rotation
+        // Rotation
         Eigen::Matrix3d R;
         for (size_t i = 0; i < 3; ++i)
         {
@@ -188,41 +170,34 @@ int read_pixel4d(
         }
 
         cams_rotation.push_back(R);
+        cv::Mat center = eigenToCvMat32FC1(t).t();
 
-
-        cv::Mat center=eigenToCvMat32FC1(t).t();
-        
         sfm->addCamsCenter(center.clone());
         Cs.push_back(center.clone());
 
-      
         t = -R * t;
         cams_translation.push_back(t);
 
-        // projection
+        // Projection
         Eigen::MatrixXd P(3, 4);
         P.block<3, 3>(0, 0) = R;
         P.block<3, 1>(0, 3) = t;
 
         sfm->addCamsRT(eigenToCvMat32FC1(P));
-   
+
         P = K * P;
         cams_projection.push_back(P);
 
         sfm->addImageNames(filename);
 
         cv::Mat Pmat = eigenToCvMat32FC1(P);
-      
-        
+
         cv::Mat subMat = Pmat.rowRange(0, 3).colRange(0, 3);
         Ms.push_back(subMat.clone().t());
         cams.push_back(Pmat.clone());
-
-        
-
     }
-    pix4d_cam_file.close();
 
+    pix4d_cam_file.close();
     sfm->iniImageSize();
     sfm->iniCameraSize();
 
@@ -230,22 +205,22 @@ int read_pixel4d(
     {
         sfm->addCamera(cams[i], i);
         int aw, ah, as;
-        get_image_size_without_decode_image((imageFolder + "/" + sfm->iImageNames(i)).c_str(), &aw, &ah, &as);
+        get_image_size_without_decode_image((sfm->inFolder + "/" + sfm->iImageNames(i)).c_str(), &aw, &ah, &as);
         sfm->addImSize(ah, aw, i);
     }
 
-    // read point data
+    // Read point data
     std::ifstream pix4d_point_file;
     pix4d_point_file.open(file2.c_str());
 
     std::string pix4d_point_line;
 
-    std::map<std::string, std::list<unsigned int> > featuresPerCam;
+    std::map<std::string, std::list<unsigned int>> featuresPerCam;
     std::map<std::string, unsigned int> feat_key2id;
     std::map<unsigned int, std::string> feat_id2key;
     std::map<unsigned int, bool> feat_valid;
     std::map<unsigned int, Eigen::Vector3d> feat_pos3D;
-    std::vector<std::list<std::pair<size_t, Eigen::Vector2d> > > feat_observations;
+    std::vector<std::list<std::pair<size_t, Eigen::Vector2d>>> feat_observations;
 
     std::string key;
     size_t key_img_pos;
@@ -264,41 +239,41 @@ int read_pixel4d(
         {
             if (rest.length() == 0)
             {
-                // new key image
+                // New key image
                 key = id;
                 key_img_pos = img2pos[key];
             }
             else
             {
-                // new feature for current key image
+                // New feature for current key image
                 pix4d_stream.clear();
-    
+
                 pix4d_stream.str(pix4d_point_line);
                 pix4d_stream >> id >> px >> py >> scale;
 
-                // check for new feature
+                // Check for new feature
                 size_t fID;
                 if (feat_key2id.find(id) == feat_key2id.end())
                 {
-                    // new feature
+                    // New feature
                     fID = feat_observations.size();
                     feat_key2id[id] = fID;
                     feat_id2key[fID] = id;
                     feat_valid[fID] = false;
                     feat_pos3D[fID] = Eigen::Vector3d(0, 0, 0);
 
-                    feat_observations.push_back(std::list<std::pair<size_t, Eigen::Vector2d> >());
+                    feat_observations.push_back(std::list<std::pair<size_t, Eigen::Vector2d>>());
                 }
                 else
                 {
-                    // existing feature
+                    // Existing feature
                     fID = feat_key2id[id];
                 }
 
-                // add observation
+                // Add observation
                 featuresPerCam[key].push_back(fID);
-                feat_observations[fID].push_back(std::pair<size_t, Eigen::Vector2d>(key_img_pos,
-                    Eigen::Vector2d(px, py)));
+                feat_observations[fID].push_back(
+                    std::pair<size_t, Eigen::Vector2d>(key_img_pos, Eigen::Vector2d(px, py)));
             }
         }
     }
@@ -306,15 +281,15 @@ int read_pixel4d(
 
     std::cout << "Pix4D: #cameras = " << img2pos.size() << std::endl;
     std::cout << "Pix4D: #points  = " << feat_observations.size() << std::endl;
-   
-    // triangulate points (parallel)
+
+    // Triangulate points (parallel)
     std::cout << "triangulating..." << std::endl;
 #ifdef L3DPP_OPENMP
 #pragma omp parallel for
-#endif //L3DPP_OPENMP
+#endif // L3DPP_OPENMP
     for (int i = 0; i < feat_observations.size(); ++i)
     {
-        std::list<std::pair<size_t, Eigen::Vector2d> > obs = feat_observations[i];
+        std::list<std::pair<size_t, Eigen::Vector2d>> obs = feat_observations[i];
         if (obs.size() > 2)
         {
             Eigen::Vector3d P = linearHomTriangulation(obs, cams_projection);
@@ -324,10 +299,8 @@ int read_pixel4d(
                 feat_valid[i] = true;
                 feat_pos3D[i] = P;
             }
-
         }
     }
-
 
     std::cout << "prepare for elsrpp..." << std::endl;
     float pt3d[3];
@@ -335,10 +308,9 @@ int read_pixel4d(
     std::vector<uint> cam_IDs;
     sfm->initialImagePoints();
 
-
     cv::Mat mscores = cv::Mat::zeros(sfm->camsNumber(), sfm->camsNumber(), CV_16UC1);
 
-    std::vector<cv::Mat*>errs(feat_observations.size());
+    std::vector<cv::Mat *> errs(feat_observations.size());
     for (int i = 0; i < feat_observations.size(); i++)
         errs[i] = new cv::Mat;
 
@@ -356,8 +328,8 @@ int read_pixel4d(
             continue;
 
         cv::Mat points;
-        std::list<std::pair<size_t, Eigen::Vector2d> > obs = feat_observations[i];
-        std::list<std::pair<size_t, Eigen::Vector2d> >::iterator it = obs.begin();
+        std::list<std::pair<size_t, Eigen::Vector2d>> obs = feat_observations[i];
+        std::list<std::pair<size_t, Eigen::Vector2d>>::iterator it = obs.begin();
         for (; it != obs.end(); ++it)
         {
             Eigen::Vector2d pt = (*it).second;
@@ -376,36 +348,36 @@ int read_pixel4d(
 
             sfm->addImagePoints(camID, pos3D);
 
-            point_cluster.push_back(point_info{ pos3D.at<float>(0, 0),pos3D.at<float>(0, 1),(uint)camID});
-           
+            point_cluster.push_back(point_info{pos3D.at<float>(0, 0), pos3D.at<float>(0, 1), (uint)camID});
         }
 
         sfm->multiPoints.push_back(points.clone());
 
-        pt3d[0] = feat_pos3D[i][0]; pt3d[1] = feat_pos3D[i][1]; pt3d[2] = feat_pos3D[i][2];
+        pt3d[0] = feat_pos3D[i][0];
+        pt3d[1] = feat_pos3D[i][1];
+        pt3d[2] = feat_pos3D[i][2];
 
         point2lineerr(pt3d, point_cluster, Ms, Cs, errs);
 
         point_cluster.clear();
 
         for (int ii = 0; ii < cam_IDs.size(); ii++)
-            for (int jj = ii + 1; jj < cam_IDs.size(); jj++) {
+            for (int jj = ii + 1; jj < cam_IDs.size(); jj++)
+            {
                 mscores.at<ushort>(cam_IDs[ii], cam_IDs[jj])++;
                 mscores.at<ushort>(cam_IDs[jj], cam_IDs[ii])++;
             }
 
         cam_IDs.clear();
-
     }
-
-
 
     int nbins = sfm->bins;
 
     cv::Mat generalized_err;
     cv::Mat mean_std(errs.size(), 2, CV_32FC1);
     cv::Mat max_error(errs.size(), 1, CV_32FC1);
-    for (int mm = 0; mm < errs.size(); mm++) {
+    for (int mm = 0; mm < errs.size(); mm++)
+    {
         cv::Mat err_sub = *errs[mm];
 
         if (err_sub.rows < 5)
@@ -419,7 +391,8 @@ int read_pixel4d(
 
         cv::Mat new_sub_err;
         float maxv = 0;
-        for (int i = 0; i < err_sub.rows; i++) {
+        for (int i = 0; i < err_sub.rows; i++)
+        {
             if (err_sub.at<float>(i, 0) > mmax_thre || err_sub.at<float>(i, 0) < mmin_thre)
                 continue;
             new_sub_err.push_back(err_sub.at<float>(i, 0));
@@ -440,22 +413,25 @@ int read_pixel4d(
         new_sub_err = (new_sub_err - mean_new) / std_new;
 
         generalized_err.push_back(new_sub_err);
-
     }
 
-    std::vector<uint>counts(nbins, 0);
+    std::vector<uint> counts(nbins, 0);
     float interval = 3.0 / nbins;
-    for (int i = 0; i < generalized_err.rows; i++) {
+    for (int i = 0; i < generalized_err.rows; i++)
+    {
         int ibin = std::floor(std::abs(generalized_err.at<float>(i, 0)) / interval);
-        if (ibin >= nbins)ibin = nbins - 1;
-        if (ibin < 0)continue;
+        if (ibin >= nbins)
+            ibin = nbins - 1;
+        if (ibin < 0)
+            continue;
         counts[ibin] = counts[ibin] + 1;
     }
 
     cv::Mat prior = cv::Mat::zeros(nbins, nbins, CV_32FC1);
-    //write2txt((ushort*)mscores.data, mscores.rows, mscores.cols, sfm->inputFolder() + "\\scores.txt");
+    // write2txt((ushort*)mscores.data, mscores.rows, mscores.cols, sfm->inputFolder() + "\\scores.txt");
 
-    for (int i = 0; i < nbins; i++) {
+    for (int i = 0; i < nbins; i++)
+    {
         float sum = 0;
 
         for (int j = 0; j < i; j++)
@@ -463,7 +439,6 @@ int read_pixel4d(
 
         for (int j = 0; j < i; j++)
             prior.at<float>(i, j) = counts[j] / sum;
-
 
         float sub = nbins - i;
         for (int j = i; j < nbins; j++)
@@ -475,109 +450,78 @@ int read_pixel4d(
 
     match->addConnectScore(mscores);
 
-
     return 1;
-
 }
 
-
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
 #pragma region TCLAP cmd line trans
 
-	TCLAP::CmdLine cmd("ELSRPP"); //introduction of the program
-	TCLAP::ValueArg<std::string> inputArg("i", "input_folder", "folder containing the images", true, ".", "string");
-	cmd.add(inputArg);
-	TCLAP::ValueArg<std::string> pix4dArg("b", "params_folder", "folder containing the proeject files <project_prefix>_calibrated_camera_parameters.txt and <project_prefix>_tp_pix4d.txt", true, "", "string");
-	cmd.add(pix4dArg);
-	TCLAP::ValueArg<std::string> prefixArg("f", "project_prefix", "project name and output file prefix", true, "", "string");
-	cmd.add(prefixArg);
-	TCLAP::ValueArg<int> lineExtMethod("l", "line_ext_method", "line extraction method, if designate this command,"
-		" the line file should exist in the same folder with image files, and the naming rule of line file should follow:\n"
-		"-l 0 auto detect line with opencv lsd\n"
-		"-l 1 line file with extension .lsd\n"
-		"-l 2 line file with extension .deeplsd\n"
-		"-l 3 line file with extension .edline\n"
-		"if not designate this command or with -1, the line_files_folder and line_files_extension must not be null", false, 4, "int");
-	cmd.add(lineExtMethod);
+    // Introduction of the program
+    TCLAP::CmdLine cmd("ELSRPP");
+    // Folder containing the images
+    TCLAP::ValueArg<std::string> inputArg("i", "input_folder", "folder containing the images", true, ".", "string");
+    cmd.add(inputArg);
 
-	TCLAP::ValueArg<int> maxSize("s", "max_image_size", "the maximum size of input image", false, 99999, "int");
-	cmd.add(maxSize);
-	TCLAP::ValueArg<int> max_LineNum("n", "max_line_num", "the maximum line number of input lines", false, 99999, "int");
-	cmd.add(max_LineNum);
-	cmd.parse(argc, argv);
+    // Folder for output
+    TCLAP::ValueArg<std::string> outputArg("o", "out_folder", "folder for output", true, ".", "string");
+    cmd.add(outputArg);
 
+    // Folder containing the project files <project_prefix>_calibrated_camera_parameters.txt and
+    // <project_prefix>_tp_pix4d.txt
+    TCLAP::ValueArg<std::string> pix4dArg(
+        "b", "params_folder",
+        "folder containing the project files <project_prefix>_calibrated_camera_parameters.txt and "
+        "<project_prefix>_tp_pix4d.txt",
+        true, "", "string");
+    cmd.add(pix4dArg);
+    // Project name and output file prefix
+    TCLAP::ValueArg<std::string> prefixArg("f", "project_prefix", "project name and output file prefix", true, "",
+                                           "string");
+    cmd.add(prefixArg);
+    // Line extraction method
+    TCLAP::ValueArg<std::string> lineExtMethod("l", "line_ext_method",
+                                               "line extraction method, if designate this command,"
+                                               " the line file should exist in the same folder with image files, and "
+                                               "the naming rule of line file should follow:\n"
+                                               "-l lsd\n"
+                                               "-l ag3line\n"
+                                               "-l edline\n",
+                                               false, "lsd", "string");
+    cmd.add(lineExtMethod);
+    // The maximum size of input image
+    TCLAP::ValueArg<int> maxSize("s", "max_image_size", "the maximum size of input image", false, 99999, "int");
+    cmd.add(maxSize);
+    // The maximum line number of input lines
+    TCLAP::ValueArg<int> max_LineNum("n", "max_line_num", "the maximum line number of input lines", false, 99999,
+                                     "int");
+    cmd.add(max_LineNum);
+    cmd.parse(argc, argv);
 #pragma endregion
 
-	clock_t start, end;
-	start = clock();
-	
-	int maxwidth = maxSize.getValue();
-	int maxLineNum = max_LineNum.getValue();
-	std::string imageFolder = inputArg.getValue().c_str();
-    std::string sfmFolder=pix4dArg.getValue().c_str();
-	std::string projextPrefix = prefixArg.getValue().c_str();
-    int line_type=lineExtMethod.getValue();
+    clock_t start, end;
+    start = clock();
 
-	int knn_image =10;
-	int conectionNum = 50;
+    int maxwidth = maxSize.getValue();
+    int maxLineNum = max_LineNum.getValue();
+    std::string lineType = lineExtMethod.getValue();
+    std::string imageFolder = inputArg.getValue().c_str();
+    std::string sfmFolder = pix4dArg.getValue().c_str();
+    std::string projextPrefix = prefixArg.getValue().c_str();
+    std::string outFolder = outputArg.getValue().c_str();
 
-	SfMManager sfm(imageFolder,ADAPTIVE_BINS);
-	MatchManager match;
+    // Check if parameter files exist
+    std::string params_prefix = sfmFolder + "/" + projextPrefix;
+    if (params_prefix.substr(params_prefix.length() - 1, 1) != "_")
+        params_prefix += "_";
 
-	// check if parameter files exist
-	std::string params_prefix = sfmFolder + "/" + projextPrefix;
-	if (params_prefix.substr(params_prefix.length() - 1, 1) != "_")
-		params_prefix += "_";
+    SfMManager sfm(params_prefix, imageFolder, outFolder);
+    MatchManager match;
 
-	// read sfm
-	read_pixel4d(imageFolder,params_prefix,&sfm, &match, knn_image, conectionNum);
+    // Read sfm data
+    read_pixel4d(&sfm, &match);
 
-	std::cout << "process pixel4d in "
-	<< (float)(clock() - start) / CLOCKS_PER_SEC << "s" << std::endl;
+    elsrpp(&sfm, &match, lineType, maxwidth, maxLineNum);
 
-	//1 Process single images,run_old_stream in multiple threads 
-	start = clock();
-	int* nums = new int[sfm.camsNumber()];
-
-	#pragma omp parallel for
-	for (int i = 0; i < sfm.camsNumber(); i++)
-        nums[i] = processImage(&sfm, i, INTERSECT_COS, INTERSECT_DIS, SUPPORT_POINT_NUM, maxwidth, line_type, maxLineNum, "lineFolder", "lineExt");
-	
-	//match index ana
-	std::vector <int> linesize;
-	sfm.lineSize(linesize);
-	match.initializeM(linesize, knn_image, conectionNum);
-
-	std::cout << "processImage sfm in "
-		<< (float)(clock() - start) / CLOCKS_PER_SEC << "s" << std::endl;
-
-	start = clock();
-	int matchIM1, matchIM2;
-	#pragma omp parallel for
-	for (int matchID = 0; matchID < match.matchSize(); matchID++)
-	{
-		match.iPairIndex(matchID, matchIM1, matchIM2);
-		matchPair(&sfm, &match, matchID,POINT_LINE_DIS, LINE_LINE_ANG);
-	}
-
-	std::cout << "matchPair in "
-		<< (float)(clock() - start) / CLOCKS_PER_SEC << "s" << std::endl;
-
-	start = clock();
-	MergeProcess* mp= new MergeProcess(&sfm, &match);
-	mp->beginSweep();
-
-	std::cout << "sweep in in "
-		<< (float)(clock() - start) / CLOCKS_PER_SEC << "s" << std::endl;
-
-	//Line Cluster
-	start = clock();
-	lineCluster(&sfm, mp, sfmFolder);
-
-	std::cout << "line cluster in in "
-		<< (float)(clock() - start) / CLOCKS_PER_SEC << "s" << std::endl;
-
-	return 0;
+    return 0;
 }
-

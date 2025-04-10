@@ -1,43 +1,46 @@
-# 检查是否已经定义了 CMAKE_TOOLCHAIN_FILE
-if (NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-    set(CMAKE_TOOLCHAIN_FILE "C:\Users\weideep\vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "vcpkg toolchain file")
-endif()
-
 cmake_minimum_required(VERSION 3.15)
 
+# Set project name
 project(ELSRPP_LIB)
 
+# Use static runtime library (MT for Release, MTd for Debug)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
+# Enable C++17
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Set toolchain file for vcpkg if not already defined
+if (NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    set(CMAKE_TOOLCHAIN_FILE "C:/Users/weixi/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "vcpkg toolchain file")
+endif()
+
+# Find required packages
 find_package(NLopt REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(Boost REQUIRED COMPONENTS filesystem serialization)
+find_package(OpenMP REQUIRED)
 
-# 如果 TCLAP_INCLUDE_DIR 没有找到，手动指定路径
+# Find TCLAP (command-line parser library)
 find_path(TCLAP_INCLUDE_DIR tclap/CmdLine.h
     PATHS C:/Users/weixi/tclap-1.4/include
     NO_DEFAULT_PATH
 )
 
+# Recursively find all .cpp files under src/
+file(GLOB_RECURSE ELSRPP_sources CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 
-# 递归搜索 src/ 下所有 .cpp 文件
-file(GLOB_RECURSE ELSRPP_source_list CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
-
-# 可选：递归搜索 include/ 下所有 .h 文件
-file(GLOB_RECURSE ELSRPP_header_list CONFIGURE_DEPENDS
+# Optionally, recursively find all header files under include/
+file(GLOB_RECURSE ELSRPP_headers CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp
 )
 
+# Create the static library
+add_library(ELSRPP ${ELSRPP_sources} ${ELSRPP_headers})
 
-add_library(ELSRPP
-    ${ELSRPP_header_list}
-    ${ELSRPP_source_list}
-)
-
-# 设置 include 路径，确保外层能引用
+# Set include directories
 target_include_directories(ELSRPP PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${Boost_INCLUDE_DIRS}
@@ -47,13 +50,31 @@ target_include_directories(ELSRPP PUBLIC
     ${NLOPT_INCLUDE_DIRS}
 )
 
-# 链接依赖库
+# Link libraries using keyword signature for debug/optimized
 target_link_libraries(ELSRPP
-    ${OpenCV_LIBRARIES}
-    debug ${Boost_FILESYSTEM_LIBRARY_DEBUG}
-    optimized ${Boost_FILESYSTEM_LIBRARY_RELEASE}
-    debug ${Boost_SERIALIZATION_LIBRARY_DEBUG}
-    optimized ${Boost_SERIALIZATION_LIBRARY_RELEASE}
-    NLopt::nlopt
+    PUBLIC
+        debug ${Boost_FILESYSTEM_LIBRARY_DEBUG}
+        optimized ${Boost_FILESYSTEM_LIBRARY_RELEASE}
+        debug ${Boost_SERIALIZATION_LIBRARY_DEBUG}
+        optimized ${Boost_SERIALIZATION_LIBRARY_RELEASE}
+        NLopt::nlopt
+        ${OpenCV_LIBRARIES}
 )
-set_property(TARGET ELSRPP PROPERTY CXX_STANDARD 17)
+
+# 如果找到了 OpenMP，也加上：
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(ELSRPP PUBLIC OpenMP::OpenMP_CXX)
+endif()
+
+# ✅ 关键：为 Visual Studio 分组（按目录结构分组）
+foreach(_source IN LISTS ELSRPP_sources)
+    file(RELATIVE_PATH _source_rel "${CMAKE_CURRENT_SOURCE_DIR}/src" "${_source}")
+    get_filename_component(_source_path "${_source_rel}" PATH)
+    source_group("Source Files\\${_source_path}" FILES "${_source}")
+endforeach()
+
+foreach(_header IN LISTS ELSRPP_headers)
+    file(RELATIVE_PATH _header_rel "${CMAKE_CURRENT_SOURCE_DIR}/include" "${_header}")
+    get_filename_component(_header_path "${_header_rel}" PATH)
+    source_group("Header Files\\${_header_path}" FILES "${_header}")
+endforeach()

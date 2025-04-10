@@ -30,21 +30,10 @@
 #endif 
 
 #ifndef LINE_plane_sin_min
-#define LINE_plane_sin_min 0 //0.01750.0087
+#define LINE_plane_sin_min 0.01750
 #endif 
 
 
-#ifndef MAX_EPIPOLAR_COS
-#define MAX_EPIPOLAR_COS  0.9848 //4 degree 0.997564  5 degree 0.9962; 1 degree 0.9998; 10 degree 0.9848    ori  0.9994
-#endif 
-
-#ifndef DEPTH_SHIFT_PIXEL
-#define DEPTH_SHIFT_PIXEL 15.0
-#endif 
-
-#ifndef MIN_SUPPORT_NUM
-#define MIN_SUPPORT_NUM 2
-#endif 
 
 /*
   One can scale the image by change this threshold.
@@ -54,10 +43,8 @@
 #define MAX_IMAGE_WIDTH 60000 //revise0505
 #endif 
 
-#ifndef SAMPLE_COS_INTERVAL
-#define SAMPLE_COS_INTERVAL 0.01
-#endif 
 
 #ifndef ADAPTIVE_BINS
 #define ADAPTIVE_BINS 25
 #endif 
+

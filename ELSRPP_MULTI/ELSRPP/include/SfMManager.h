@@ -3,25 +3,21 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/opencv.hpp>
 #include<string>
-#include"IO.h"
-
+#include "ReadLoad.h"
 
 class SfMManager
 {
 	std::vector<std::string> imageNames;
 	std::vector<float> camsFocals;
 	std::vector<cv::Mat> camsRT;
-	
-	 
+
 	cv::Mat camera33Trans;
 	cv::Mat camsCenters;
 	cv::Mat points3D;
 	cv::Mat cameraMat;
 	cv::Mat imSizes;
 
-	std::string input_folder_;
 	std::string nvmFile_;
-
 	int cams_number = 0;
 
 	std::vector<int> imageLineSize;
@@ -29,13 +25,16 @@ class SfMManager
 	std::vector<cv::Mat> junctionLines;
 	std::vector<cv::Mat> parraLines;
 	std::vector<cv::Mat> imageLines;
-	
-	
-	
 
 public:
 
 	std::string sfmType;
+	std::string inFolder;
+	std::string outFolder;
+	std::string params_prefix;
+
+	int knn_image = 10;
+	int conectionNum = 50;
 
 	void writeCmaratxt();
 	void writeImagePoints();
@@ -87,8 +86,8 @@ public:
 	std::string inputFolder();
 	std::string nvmFile();
 
-	SfMManager(std::string inputFolder, std::string nvmFile, int NBINS);
-	SfMManager(std::string inputFolder, int NBINS);
+	
+	SfMManager(std::string params_prefix, std::string imageFolder, std::string outputFolder);
 
 	void iniImageSize();
 	void iniCameraSize();
