@@ -1,24 +1,24 @@
-////
+ï»¿//
 //  LineCluster.cpp
-//  Error Analysis
+//  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //
 //  Created by Alexxxxx on 2024/7/14.
 //
 #include "LineCluster.h"
 #include "BasicMath.h"
-#include "Parameters.h"
+#include"Parameters.h"
 
-// Compute cross product of two vectors
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 cv::Vec3d crossProduct(const cv::Vec3d& v1, const cv::Vec3d& v2) {
 	return v1.cross(v2);
 }
 
-// Compute the distance between two points
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö®ï¿½ï¿½Ä¾ï¿½ï¿½ï¿½
 double getDist(const cv::Vec3d& point1, const cv::Vec3d& point2) {
 	return cv::norm(point1 - point2);
 }
 
-// Compute the line equation parameters
+
 void LineEquation(const cv::Vec3d& V1, const cv::Vec3d& V2, cv::Vec3d& abc) {
 	double x1 = V1[0], y1 = V1[1], z1 = V1[2];
 	double x2 = V2[0], y2 = V2[1], z2 = V2[2];
@@ -32,87 +32,249 @@ void LineEquation(const cv::Vec3d& V1, const cv::Vec3d& V2, cv::Vec3d& abc) {
 	}
 }
 
-// Output to OBJ file
+//ï¿½ï¿½ï¿½obj
 void outObj(std::string filePath, cv::Mat lines) {
-	// Output OBJ file
+	//ï¿½ï¿½ï¿½OBJ
 	std::ofstream outfile;
 	outfile.open(filePath);
-
-	// Write vertices
+	//cv::Mat spaceLine;
 	for (int i = 0; i < lines.rows; i++) {
 		outfile << "v " << lines.at<float>(i, 0) << " " << lines.at<float>(i, 1) << " " << lines.at<float>(i, 2) << "\n";
 		outfile << "v " << lines.at<float>(i, 3) << " " << lines.at<float>(i, 4) << " " << lines.at<float>(i, 5) << "\n";
 	}
-
-	// Write line segments
 	for (int i = 0; i < lines.rows; i++) {
 		outfile << "l " << i * 2 + 1 << " " << i * 2 + 2 << "\n";
 	}
-
 	outfile.close();
 }
 
-// Compute the distance between two lines
 void line2lineDist(const cv::Mat& l3d, const cv::Mat& cen, const cv::Mat& cen2, cv::Vec3d& O1, cv::Vec3d& O2, double& dist) {
-	// Extract two points on each line
+	// ï¿½ï¿½È¡Ö±ï¿½ï¿½ï¿½Ïµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	cv::Vec3d P1 = l3d.row(0).colRange(0, 3);
 	cv::Vec3d P2 = l3d.row(0).colRange(3, 6);
 	cv::Vec3d Q1 = cen.row(0);
 	cv::Vec3d Q2 = cen2.row(0);
 
-	// Compute line equation parameters
+	// ï¿½ï¿½ï¿½ï¿½Ö±ï¿½ß²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	cv::Vec3d abc1, abc2;
 	LineEquation(P1, P2, abc1);
 	LineEquation(Q1, Q2, abc2);
 
-	// Line vectors
+	// ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	cv::Vec3d v1 = P2 - P1;
 	cv::Vec3d v2 = Q2 - Q1;
 
-	// Compute the plane equation for the line_1 and perpendicular line
+	// ï¿½ï¿½line_1ï¿½ë¹«ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Éµï¿½Æ½ï¿½æ·½ï¿½ï¿½A1x+B1y+C1z+D1=0
 	cv::Vec3d n1 = crossProduct(crossProduct(v1, v2), v1);
 	double A1 = n1[0], B1 = n1[1], C1 = n1[2];
 	double D1 = -A1 * P1[0] - B1 * P1[1] - C1 * P1[2];
 
-	// Compute the plane equation for the line_2 and perpendicular line
+	// ï¿½ï¿½line_2ï¿½ë¹«ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Éµï¿½Æ½ï¿½æ·½ï¿½ï¿½A2x+B2y+C2z+D2=0
 	cv::Vec3d n2 = crossProduct(crossProduct(v1, v2), v2);
 	double A2 = n2[0], B2 = n2[1], C2 = n2[2];
 	double D2 = -A2 * Q1[0] - B2 * Q1[1] - C2 * Q1[2];
 
-	// Find the closest point O1 on line_1 to line_2
+	// ï¿½ï¿½line_1ï¿½Ï¾ï¿½ï¿½ï¿½Ö±ï¿½ï¿½line_2ï¿½ï¿½ï¿½ï¿½Äµï¿½O1
 	double t1 = -(A2 * P1[0] + B2 * P1[1] + C2 * P1[2] + D2) / (A2 * abc1[0] + B2 * abc1[1] + C2 * abc1[2]);
 	O1 = P1 + t1 * abc1;
 
-	// Find the closest point O2 on line_2 to line_1
+	// ï¿½ï¿½line_2ï¿½Ï¾ï¿½ï¿½ï¿½Ö±ï¿½ï¿½line_1ï¿½ï¿½ï¿½ï¿½Äµï¿½O2
 	double t2 = -(A1 * Q1[0] + B1 * Q1[1] + C1 * Q1[2] + D1) / (A1 * abc2[0] + B1 * abc2[1] + C1 * abc2[2]);
 	O2 = Q1 + t2 * abc2;
 
-	// Compute the distance between the two points
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö®ï¿½ï¿½Ä¾ï¿½ï¿½ï¿½
 	dist = getDist(O1, O2);
 }
 
-// Calculate the angle between two vectors
 double calculateAngle(const cv::Vec3d& vec1, const cv::Vec3d& vec2) {
-	// Compute dot product
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	double dotProduct = vec1.dot(vec2);
 
-	// Compute the norms of the vectors
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä·ï¿½ï¿½ï¿½
 	double normVec1 = cv::norm(vec1);
 	double normVec2 = cv::norm(vec2);
 
-	// Compute the cosine of the angle
+	// ï¿½ï¿½ï¿½ï¿½Ð½Çµï¿½ï¿½ï¿½ï¿½ï¿½Öµ
 	double cosAngle = dotProduct / (normVec1 * normVec2);
 
-	// Compute and return the angle
+	// ï¿½ï¿½ï¿½ã²¢ï¿½ï¿½ï¿½Ø¼Ð½ï¿½
 	double angle = acos(cosAngle);
 
 	return angle;
 }
 
 
+std::vector<std::string> getFiles(const std::filesystem::path& folderPath, const std::string exp) {
+	std::vector<std::string> jpgFiles;
+
+	try {
+		for (const auto& entry : std::filesystem::directory_iterator(folderPath)) {
+			if (entry.is_regular_file() && entry.path().extension() == exp) {
+				jpgFiles.push_back(entry.path().string());
+			}
+		}
+	}
+	catch (const std::filesystem::filesystem_error& e) {
+		std::cerr << "Filesystem error: " << e.what() << std::endl;
+	}
+
+	return jpgFiles;
+}
 
 
-// Function to split a string by a delimiter
+
+//ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½È¡ï¿½ï¿½ï¿½Ý£ï¿½Ã¿Ò»ï¿½Ð¶ï¿½È¡ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+int readLinesFromFile(std::string filepath, std::vector<std::string>& allLines) {
+	// ï¿½ï¿½ï¿½Ä¼ï¿½
+	std::ifstream file(filepath);
+	if (!file.is_open()) {
+		std::cerr << "ï¿½Þ·ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½: " << filepath << std::endl;
+		return -1;
+	}
+	std::string line;//Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	int row = 0;
+	while (std::getline(file, line)) {
+		if (line.empty()) continue;
+		allLines.push_back(line);
+		row++;
+	}
+	file.close();
+	return row;
+}
+
+// ï¿½ï¿½ï¿½Ä±ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+cv::Mat readMatrixFromFile(const std::string& filePath) {
+
+	std::vector<std::string> lines;//ï¿½æ´¢Ã¿Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	int row = readLinesFromFile(filePath, lines);
+	int col = 0;
+	{
+		std::stringstream ss(lines[0]);
+		std::string tmp_s;
+		while (ss >> tmp_s) {
+			col++;
+		}
+	}
+
+	cv::Mat matrix(row, col, CV_32FC1);
+	for (int i = 0; i < row; i++) {
+		int j = 0;
+		std::stringstream ss(lines[i]);
+		std::string tmp_s;
+		while (ss >> tmp_s) {
+			if (j > col) {
+				std::cout << "wrong cols" << std::endl;
+				return cv::Mat();
+			}
+			matrix.at<float>(i, j) = atof(tmp_s.c_str());
+			j++;
+		}
+	}
+
+	return matrix;
+}
+
+// ï¿½ï¿½ï¿½Ä±ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+cv::Mat readMatrixFromFile(const std::string& filePath, int cols) {
+	// ï¿½ï¿½ï¿½Ä¼ï¿½
+	std::ifstream file(filePath);
+	if (!file.is_open()) {
+		std::cerr << "ï¿½Þ·ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½: " << filePath << std::endl;
+		//return cv::Mat();
+	}
+
+	std::vector<float> data;
+	float value;
+	int numElements = 0;
+
+	// ï¿½ï¿½È¡ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý´æ´¢ï¿½ï¿½vectorï¿½ï¿½
+	while (file >> value) {
+		data.push_back(value);
+		numElements++;
+	}
+	file.close();
+
+	// È·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	int rows = numElements / cols;
+	if (rows * cols != numElements) {
+		std::cerr << "ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ¥ï¿½ï¿½" << std::endl;
+		//return cv::Mat();
+	}
+
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ÎªMatï¿½ï¿½ï¿½ï¿½
+//    cv::Mat matrix(rows, cols, CV_32F, data.data());
+	cv::Mat matrix(rows, cols, CV_32F);
+	int c = 0;
+	for (int row = 0; row < rows; row++) {
+		for (int col = 0; col < cols; col++) {
+			matrix.at<float>(row, col) = data[c];
+			c++;
+		}
+	}
+
+	return matrix;
+}
+
+void readSFM(std::string outfolder, SFM_INFO& sfmInfo, IMG_INFO& imgInfo) {
+	std::vector<std::string> allFiles = getFiles(outfolder, ".P");
+	//    std::vector<cv::Mat> cameras;
+	//    std::vector<cv::Mat> centers;
+	//    std::vector<cv::Mat> lines;
+	imgInfo.cameras.resize(allFiles.size());
+	imgInfo.centers.resize(allFiles.size());
+	imgInfo.lines.resize(allFiles.size());
+	for (int i = 0; i < allFiles.size(); i++) {
+		std::filesystem::path path(allFiles[i]);
+		std::string name = path.stem().string();
+		imgInfo.cameras[atoi(name.c_str())] = readMatrixFromFile(outfolder + "/" + name + ".P");
+
+		//        for(int row=0; row<cameras[atoi(name.c_str())].rows; row++){
+		//            for(int col=0; col<cameras[atoi(name.c_str())].cols; col++){
+		//                std::cout<<cameras[atoi(name.c_str())].at<float>(row,col)<<"  ";
+		//            }
+		//           std::cout<<std::endl;
+		//        }
+
+		imgInfo.centers[atoi(name.c_str())] = readMatrixFromFile(outfolder + "/" + name + ".cen");
+		if (!std::filesystem::exists(outfolder + "/" + name + ".line")) {
+			continue;
+		}
+		imgInfo.lines[atoi(name.c_str())] = readMatrixFromFile(outfolder + "/" + name + ".line");
+	}
+
+	allFiles.clear();
+	allFiles = getFiles(outfolder, ".cam");
+	int matchsize = allFiles.size();
+
+	//    std::vector<cv::Mat> camID; 
+	sfmInfo.camID.resize(matchsize);
+	//    std::vector<cv::Mat> lineID;
+	sfmInfo.lineID.resize(matchsize);
+	//    std::vector<cv::Mat> counters;
+	sfmInfo.counters.resize(matchsize);
+	//    cv::Mat pairID = cv::Mat::zeros(matchsize, 2, CV_32FC1);
+	sfmInfo.pairID = cv::Mat::zeros(matchsize, 2, CV_32FC1);
+
+	for (int i = 0; i < allFiles.size(); i++) {
+		std::filesystem::path path(allFiles[i]);
+		std::string name = path.stem().string();
+
+		sfmInfo.camID[i] = readMatrixFromFile(outfolder + "/" + name + ".cam");
+		sfmInfo.lineID[i] = readMatrixFromFile(outfolder + "/" + name + ".lin");
+		sfmInfo.counters[i] = readMatrixFromFile(outfolder + "/" + name + ".cou");
+
+		sfmInfo.pairID.at<float>(i, 0) = sfmInfo.camID[i].at<float>(0, 0) + 1;
+		sfmInfo.pairID.at<float>(i, 1) = sfmInfo.camID[i].at<float>(0, 1) + 1;
+
+	}
+
+	//    for (int i=0; i<matchsize; i++) {
+	//        std::cout<<pairID.at<float>(i, 0)<<"\t"<<pairID.at<float>(i, 1)<<std::endl;
+	//    }
+	//    std::cout<<std::endl;
+}
+
+// ï¿½Ö¸ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½Äºï¿½ï¿½ï¿½
 std::vector<std::string> split(const std::string& str, char delimiter) {
 	std::vector<std::string> tokens;
 	std::string token;
@@ -133,7 +295,7 @@ std::vector<std::string> split(const std::string& str, char delimiter) {
 	return tokens;
 }
 
-// Calculate the distance from a point to a line
+//ï¿½ãµ½Ö±ï¿½ß¾ï¿½ï¿½ï¿½
 cv::Mat pt2LineDis(cv::Mat P, cv::Mat A, cv::Mat B) {
 	cv::Mat AB = B - A;
 	cv::Mat AP = P - A;
@@ -147,16 +309,16 @@ cv::Mat pt2LineDis(cv::Mat P, cv::Mat A, cv::Mat B) {
 	return err3;
 }
 
-// Calculate the multivariate normal cumulative distribution function
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì¬ï¿½Û»ï¿½ï¿½Ö²ï¿½ï¿½ï¿½ï¿½ï¿½
 double mvncdf(const Eigen::VectorXd& x, const Eigen::VectorXd& mean, const Eigen::MatrixXd& cov) {
-	// Compute the Cholesky decomposition of the covariance matrix
+	// ï¿½ï¿½ï¿½ï¿½Ð­ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Choleskyï¿½Ö½ï¿½
 	Eigen::LLT<Eigen::MatrixXd> llt(cov);
 	Eigen::MatrixXd L = llt.matrixL();
 
-	// Standardize the input vector
+	// ï¿½ï¿½×¼ï¿½ï¿½
 	Eigen::VectorXd z = L.triangularView<Eigen::Lower>().solve(x - mean);
 
-	// Use the one-dimensional normal distribution to calculate the CDF
+	// Ê¹ï¿½ï¿½Ò»Î¬ï¿½ï¿½Ì¬ï¿½Ö²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Û»ï¿½ï¿½Ö²ï¿½ï¿½ï¿½ï¿½ï¿½
 	boost::math::normal_distribution<> standard_normal(0, 1);
 	double p = 1.0;
 	for (int i = 0; i < z.size(); ++i) {
@@ -167,8 +329,7 @@ double mvncdf(const Eigen::VectorXd& x, const Eigen::VectorXd& mean, const Eigen
 }
 
 
-
-// Triangulate points in front of the camera
+//ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 void triangulate(cv::Mat left_cam, cv::Mat right_cam, cv::Mat left_pts, cv::Mat right_pts, cv::Mat& space_pts) {
 	cv::Mat re_space_pts;
 	cv::triangulatePoints(left_cam, right_cam, left_pts.t(), right_pts.t(), re_space_pts);
@@ -179,13 +340,12 @@ void triangulate(cv::Mat left_cam, cv::Mat right_cam, cv::Mat left_pts, cv::Mat 
 	space_pts.col(2) = (re_space_pts.row(2) / re_space_pts.row(3)).t();
 }
 
-// Update the mean and standard deviation
 void getMeanStd(double mean, double stdv, double n, double new_d, double& new_mean, double& new_std) {
 	new_mean = (n * mean + new_d) / (n + 1.0);
 	new_std = std::sqrt(((n - 1.0) * stdv * stdv + n * mean * mean + new_d * new_d - (n + 1.0) * new_mean * new_mean) / n);
 }
 
-// Function to calculate the median
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½ï¿½Äºï¿½ï¿½ï¿½
 double median(std::vector<double>& vec) {
 	std::sort(vec.begin(), vec.end());
 	size_t size = vec.size();
@@ -197,12 +357,12 @@ double median(std::vector<double>& vec) {
 	}
 }
 
-// medianStds function
+// medianStds ï¿½ï¿½ï¿½ï¿½
 double medianStds(const cv::Mat& stdArr) {
-	// Reshape the matrix to N x 3
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª N x 3
 	cv::Mat stdA = stdArr.reshape(1, stdArr.rows * stdArr.cols);
 
-	// Convert to std::vector and remove rows containing zero
+	// ×ªï¿½ï¿½Îª std::vector ï¿½ï¿½ï¿½Æ³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	std::vector<cv::Vec3f> vecA;
 	for (int i = 0; i < stdA.rows; ++i) {
 		cv::Vec3f row(stdA.at<float>(i, 0), stdA.at<float>(i, 1), stdA.at<float>(i, 2));
@@ -211,12 +371,12 @@ double medianStds(const cv::Mat& stdArr) {
 		}
 	}
 
-	// If filtered vector is empty, return 0
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ëºï¿½Îªï¿½Õ£ï¿½ï¿½ï¿½ï¿½ï¿½ 0
 	if (vecA.empty()) {
 		return 0;
 	}
 
-	// Store each column's values
+	// ï¿½Ö±ï¿½æ´¢Ã¿Ò»ï¿½Ðµï¿½Öµ
 	std::vector<double> col1, col2, col3;
 	for (const auto& row : vecA) {
 		col1.push_back(row[0]);
@@ -224,19 +384,108 @@ double medianStds(const cv::Mat& stdArr) {
 		col3.push_back(row[2]);
 	}
 
-	// Calculate the median of each column
+	// ï¿½ï¿½ï¿½ï¿½Ã¿ï¿½Ðµï¿½ï¿½ï¿½Î»ï¿½ï¿½
 	double stx = median(col1);
 	double sty = median(col2);
 	double stz = median(col3);
 
-	// Calculate the distance
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	double distmean = std::sqrt(std::pow(2 * stx, 2) + std::pow(2 * sty, 2) + std::pow(2 * stz, 2));
 
 	return distmean;
 }
 
+//ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½È¡multiPoints
+void normalBuild(std::string outfolder, SFM_INFO& sfmInfo, IMG_INFO& imgInfo, ARR_INFO& arrInfo) {
+	std::cout << "Start Norm Build:..." << std::endl;
+	auto start = std::chrono::high_resolution_clock::now();
 
-//Ö±½ÓÊ¹ÓÃÄÚ´æÖÐµÄmultiPoints
+	cv::Mat imageConnect = cv::Mat::zeros(imgInfo.cameras.size(), imgInfo.cameras.size(), CV_16SC1);
+	for (int i = 0; i < sfmInfo.pairID.rows; i++) {
+		int row = sfmInfo.pairID.at<float>(i, 0) - 1;
+		int col = sfmInfo.pairID.at<float>(i, 1) - 1;
+		imageConnect.at<short>(row, col) = i + 1;
+		imageConnect.at<short>(col, row) = i + 1;
+	}
+
+	arrInfo.meanArr = cv::Mat::zeros(sfmInfo.pairID.rows, imgInfo.cameras.size(), CV_32FC3);
+	arrInfo.stdArr = cv::Mat::zeros(sfmInfo.pairID.rows, imgInfo.cameras.size(), CV_32FC3);
+	cv::Mat counterArr = cv::Mat::zeros(sfmInfo.pairID.rows, imgInfo.cameras.size(), CV_32FC1);
+
+	std::vector<std::string> allLinesFromMP;
+	int allPtsCount = readLinesFromFile(outfolder + "\\multiPoints.txt", allLinesFromMP);
+	for (int i = 0; i < allPtsCount; i++) {
+		std::vector<std::string> sLine = split(allLinesFromMP[i], ',');
+		if (sLine.size() < 3) continue;
+		cv::Mat subpoints = cv::Mat(sLine.size(), 3, CV_32FC1);
+		for (int j = 0; j < sLine.size(); j++) {
+			std::stringstream ss(sLine[j]);
+			std::string tmp_s;
+			ss >> tmp_s; subpoints.at<float>(j, 0) = atof(tmp_s.c_str());
+			ss >> tmp_s; subpoints.at<float>(j, 1) = atof(tmp_s.c_str());
+			ss >> tmp_s; subpoints.at<float>(j, 2) = atof(tmp_s.c_str());
+		}
+
+		for (int indx_i = 0; indx_i < subpoints.rows; indx_i++) {
+			int idi = subpoints.at<float>(indx_i, 0);
+			for (int indx_j = indx_i + 1; indx_j < sLine.size(); indx_j++) {
+				int idj = subpoints.at<float>(indx_j, 0);
+				int pairID = imageConnect.at<short>(idi, idj) - 1;
+				if (pairID == -1) continue;
+
+				auto cam1 = imgInfo.cameras[idi];
+				auto cam2 = imgInfo.cameras[idj];
+
+				cv::Mat re_space_pts;
+				triangulate(cam1, cam2, subpoints.row(indx_i).colRange(1, 3), subpoints.row(indx_j).colRange(1, 3), re_space_pts);
+
+				for (int indx_k = 0; indx_k < sLine.size(); indx_k++) {
+					int idk = subpoints.at<float>(indx_k, 0);
+					if (idi == idk || idj == idk) continue;
+					auto cam3 = imgInfo.cameras[idk];
+					auto cen3 = imgInfo.centers[idk];
+
+					cv::Mat pt3 = (cv::Mat_<float>(3, 1) << subpoints.at<float>(indx_k, 1), subpoints.at<float>(indx_k, 2), 1.0);
+					cv::Mat s_cam3 = cam3.rowRange(0, 3).colRange(0, 3);
+					cv::Mat ray = s_cam3.inv() * pt3;
+
+					cv::Mat pt2l = pt2LineDis(re_space_pts.t(), cen3.t(), cen3.t() + 2 * ray);
+
+					counterArr.at<float>(pairID, idk) = counterArr.at<float>(pairID, idk) + 1;
+
+					double m0, s0;
+					getMeanStd(arrInfo.meanArr.at<cv::Vec3f>(pairID, idk)[0], arrInfo.stdArr.at<cv::Vec3f>(pairID, idk)[0],
+						counterArr.at<float>(pairID, idk), pt2l.at<float>(0), m0, s0);
+					arrInfo.meanArr.at<cv::Vec3f>(pairID, idk)[0] = m0;
+					arrInfo.stdArr.at<cv::Vec3f>(pairID, idk)[0] = s0;
+
+					double m1, s1;
+					getMeanStd(arrInfo.meanArr.at<cv::Vec3f>(pairID, idk)[1], arrInfo.stdArr.at<cv::Vec3f>(pairID, idk)[1],
+						counterArr.at<float>(pairID, idk), pt2l.at<float>(1), m1, s1);
+					arrInfo.meanArr.at<cv::Vec3f>(pairID, idk)[1] = m1;
+					arrInfo.stdArr.at<cv::Vec3f>(pairID, idk)[1] = s1;
+
+					double m2, s2;
+					getMeanStd(arrInfo.meanArr.at<cv::Vec3f>(pairID, idk)[2], arrInfo.stdArr.at<cv::Vec3f>(pairID, idk)[2],
+						counterArr.at<float>(pairID, idk), pt2l.at<float>(2), m2, s2);
+					arrInfo.meanArr.at<cv::Vec3f>(pairID, idk)[2] = m2;
+					arrInfo.stdArr.at<cv::Vec3f>(pairID, idk)[2] = s2;
+				}
+			}
+		}
+	}
+	arrInfo.distmean = medianStds(arrInfo.stdArr);
+	std::cout << "distmean = " << arrInfo.distmean << std::endl;
+
+	//saveMat(outfolder + "\\meanArr.m", arrInfo.meanArr);
+	//saveMat(outfolder + "\\stdArr.m", arrInfo.stdArr);
+
+	auto end = std::chrono::high_resolution_clock::now();
+	double duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+	std::cout << "End Norm Build, time use: " << duration / 1000.0 << "s" << std::endl;
+}
+
+//Ö±ï¿½ï¿½Ê¹ï¿½ï¿½ï¿½Ú´ï¿½ï¿½Ðµï¿½multiPoints
 void normalBuild(std::vector<cv::Mat> multiPoints, SFM_INFO& sfmInfo, IMG_INFO& imgInfo, ARR_INFO& arrInfo) {
 	std::cout << "Start Norm Build:..." << std::endl;
 	auto start = std::chrono::high_resolution_clock::now();
@@ -450,108 +699,119 @@ void adaptiveCluster(IMG_INFO imgInfo, cv::Mat camid, cv::Mat lineid,
 	cv::Mat subind = cv::Mat::zeros(1, lineid.cols, CV_16SC1);
 
 	for (int i = 0; i < clusterSize; i++) {
-		auto counter = counters.at<float>(i, 0);
-		if (counter <= 2) continue;
-
-		cv::Mat mainlineid = lineid.row(i).colRange(0, 2);
-		cv::Mat maincamid = camid.row(i).colRange(0, 2);
-
-		cv::Mat sublineid = lineid.row(i).colRange(2, counter);
-		cv::Mat subcamid = camid.row(i).colRange(2, counter);
-
-		cv::Mat l3d = triangulateLine(mainlineid, maincamid, imgInfo.cameras, imgInfo.centers, imgInfo.lines);
-
-		l3d.copyTo(lines3D.row(i));
-		if (l3d.at<float>(0, 6) == 0) continue;
-		cv::Mat vec1 = l3d.colRange(0, 3) - l3d.colRange(3, 6);
-		auto len = cv::norm(vec1);
-
+		
 		int cc = 0;
-		for (int j = 0; j < sublineid.cols; j++) {
-			cv::Mat mean3 = meanArr.row(subcamid.at<float>(0, j));
-			cv::Mat std3 = stdArr.row(subcamid.at<float>(0, j));
+		try
+		{
+			auto counter = counters.at<float>(i, 0);
+			if (counter <= 2) continue;
 
-			if (std3.at<float>(0, 0) == 0) continue;
+			cv::Mat mainlineid = lineid.row(i).colRange(0, 2);
+			cv::Mat maincamid = camid.row(i).colRange(0, 2);
 
-			cv::Mat camj = imgInfo.cameras[subcamid.at<float>(0, j)];
-			cv::Mat linej = imgInfo.lines[subcamid.at<float>(0, j)].row(sublineid.at<float>(0, j)).colRange(0, 4);
-			cv::Mat cenj = imgInfo.centers[subcamid.at<float>(0, j)];
+			cv::Mat sublineid = lineid.row(i).colRange(2, counter);
+			cv::Mat subcamid = camid.row(i).colRange(2, counter);
 
-			cv::Mat pt1 = (cv::Mat_<float>(3, 1) << linej.at<float>(0, 0), linej.at<float>(0, 1), 1.0);
-			cv::Mat pt2 = (cv::Mat_<float>(3, 1) << linej.at<float>(0, 2), linej.at<float>(0, 3), 1.0);
-			cv::Mat ray1 = camj.rowRange(0, 3).colRange(0, 3).inv() * pt1;
-			cv::Mat ray2 = camj.rowRange(0, 3).colRange(0, 3).inv() * pt2;
+			cv::Mat l3d = triangulateLine(mainlineid, maincamid, imgInfo.cameras, imgInfo.centers, imgInfo.lines);
 
-			cv::Vec3d O1;
-			cv::Vec3d a2, b2;
-			cv::Vec3d O22;
-			double dist;
-			line2lineDist(l3d, cenj, cenj + 10.0 * ray1.t(), O1, a2, dist);
-			line2lineDist(l3d, cenj, cenj + 10.0 * ray2.t(), O1, b2, dist);
-			auto vec2 = a2 - b2;
-			double ang = calculateAngle(vec1, vec2);
-			double maxang = atan(cv::norm(3 * std3) / len);
-			if (ang > maxang || ang < 0) continue;
+			l3d.copyTo(lines3D.row(i));
+			if (l3d.at<float>(0, 6) == 0) continue;
+			cv::Mat vec1 = l3d.colRange(0, 3) - l3d.colRange(3, 6);
+			auto len = cv::norm(vec1);
 
-			cv::Mat aa2 = (cv::Mat_<float>(1, 3) << a2[0], a2[1], a2[2]);
-			cv::Vec3f err1 = pt2LineDis(aa2, l3d.row(0).colRange(0, 3), l3d.row(0).colRange(3, 6));
-			if (err1[0] > mean3.at<float>(0, 0) + 3 * std3.at<float>(0, 0) || err1[0] < mean3.at<float>(0, 0) - 3 * std3.at<float>(0, 0) ||
-				err1[1] > mean3.at<float>(0, 1) + 3 * std3.at<float>(0, 1) || err1[1] < mean3.at<float>(0, 1) - 3 * std3.at<float>(0, 1) ||
-				err1[2] > mean3.at<float>(0, 2) + 3 * std3.at<float>(0, 2) || err1[2] < mean3.at<float>(0, 2) - 3 * std3.at<float>(0, 2)
-				)continue;
+			
+			for (int j = 0; j < sublineid.cols; j++) {
+				cv::Mat mean3 = meanArr.row(subcamid.at<float>(0, j));
+				cv::Mat std3 = stdArr.row(subcamid.at<float>(0, j));
 
-			cv::Mat bb2 = (cv::Mat_<float>(1, 3) << b2[0], b2[1], b2[2]);
-			cv::Vec3f err2 = pt2LineDis(bb2, l3d.row(0).colRange(0, 3), l3d.row(0).colRange(3, 6));
-			if (err2[0] > mean3.at<float>(0, 0) + 3 * std3.at<float>(0, 0) || err2[0] < mean3.at<float>(0, 0) - 3 * std3.at<float>(0, 0) ||
-				err2[1] > mean3.at<float>(0, 1) + 3 * std3.at<float>(0, 1) || err2[1] < mean3.at<float>(0, 1) - 3 * std3.at<float>(0, 1) ||
-				err2[2] > mean3.at<float>(0, 2) + 3 * std3.at<float>(0, 2) || err2[2] < mean3.at<float>(0, 2) - 3 * std3.at<float>(0, 2)
-				)continue;
+				if (std3.at<float>(0, 0) == 0) continue;
 
-			Eigen::Vector3d err(std::max(std::abs(err1[0]), std::abs(err2[0])),
-				std::max(std::abs(err1[1]), std::abs(err2[1])),
-				std::max(std::abs(err1[2]), std::abs(err2[2])));
+				cv::Mat camj = imgInfo.cameras[subcamid.at<float>(0, j)];
+				cv::Mat linej = imgInfo.lines[subcamid.at<float>(0, j)].row(sublineid.at<float>(0, j)).colRange(0, 4);
+				cv::Mat cenj = imgInfo.centers[subcamid.at<float>(0, j)];
 
-			float a = mean3.at<float>(0);
-			float b = mean3.at<float>(1);
-			float c = mean3.at<float>(2);
-			Eigen::Vector3d mean(a, b, c);
+				cv::Mat pt1 = (cv::Mat_<float>(3, 1) << linej.at<float>(0, 0), linej.at<float>(0, 1), 1.0);
+				cv::Mat pt2 = (cv::Mat_<float>(3, 1) << linej.at<float>(0, 2), linej.at<float>(0, 3), 1.0);
+				cv::Mat ray1 = camj.rowRange(0, 3).colRange(0, 3).inv() * pt1;
+				cv::Mat ray2 = camj.rowRange(0, 3).colRange(0, 3).inv() * pt2;
 
-			Eigen::Matrix3d std333(3, 3);
-			std333 << std3.at<float>(0) * std3.at<float>(0), 0, 0,
-				0, std3.at<float>(1)* std3.at<float>(1), 0,
-				0, 0, std3.at<float>(2)* std3.at<float>(2);
+				cv::Vec3d O1;
+				cv::Vec3d a2, b2;
+				cv::Vec3d O22;
+				double dist;
+				line2lineDist(l3d, cenj, cenj + 10.0 * ray1.t(), O1, a2, dist);
+				line2lineDist(l3d, cenj, cenj + 10.0 * ray2.t(), O1, b2, dist);
+				auto vec2 = a2 - b2;
+				double ang = calculateAngle(vec1, vec2);
+				double maxang = atan(cv::norm(3 * std3) / len);
+				if (ang > maxang || ang < 0) continue;
 
-			double p1 = mvncdf(err, mean, std333);
-			double p2 = ang / maxang;
-			double p = p1 * p2;
+				cv::Mat aa2 = (cv::Mat_<float>(1, 3) << a2[0], a2[1], a2[2]);
+				cv::Vec3f err1 = pt2LineDis(aa2, l3d.row(0).colRange(0, 3), l3d.row(0).colRange(3, 6));
+				if (err1[0] > mean3.at<float>(0, 0) + 3 * std3.at<float>(0, 0) || err1[0] < mean3.at<float>(0, 0) - 3 * std3.at<float>(0, 0) ||
+					err1[1] > mean3.at<float>(0, 1) + 3 * std3.at<float>(0, 1) || err1[1] < mean3.at<float>(0, 1) - 3 * std3.at<float>(0, 1) ||
+					err1[2] > mean3.at<float>(0, 2) + 3 * std3.at<float>(0, 2) || err1[2] < mean3.at<float>(0, 2) - 3 * std3.at<float>(0, 2)
+					)continue;
 
-			ps.at<float>(cc) = p;
-			clusters.at<float>(i, j + 2) = 1;
-			subind.at<short>(cc) = j;
-			cc += 1;
+				cv::Mat bb2 = (cv::Mat_<float>(1, 3) << b2[0], b2[1], b2[2]);
+				cv::Vec3f err2 = pt2LineDis(bb2, l3d.row(0).colRange(0, 3), l3d.row(0).colRange(3, 6));
+				if (err2[0] > mean3.at<float>(0, 0) + 3 * std3.at<float>(0, 0) || err2[0] < mean3.at<float>(0, 0) - 3 * std3.at<float>(0, 0) ||
+					err2[1] > mean3.at<float>(0, 1) + 3 * std3.at<float>(0, 1) || err2[1] < mean3.at<float>(0, 1) - 3 * std3.at<float>(0, 1) ||
+					err2[2] > mean3.at<float>(0, 2) + 3 * std3.at<float>(0, 2) || err2[2] < mean3.at<float>(0, 2) - 3 * std3.at<float>(0, 2)
+					)continue;
+
+				Eigen::Vector3d err(std::max(std::abs(err1[0]), std::abs(err2[0])),
+					std::max(std::abs(err1[1]), std::abs(err2[1])),
+					std::max(std::abs(err1[2]), std::abs(err2[2])));
+
+				float a = mean3.at<float>(0);
+				float b = mean3.at<float>(1);
+				float c = mean3.at<float>(2);
+				Eigen::Vector3d mean(a, b, c);
+
+				Eigen::Matrix3d std333(3, 3);
+				std333 << std3.at<float>(0) * std3.at<float>(0), 0, 0,
+					0, std3.at<float>(1)* std3.at<float>(1), 0,
+					0, 0, std3.at<float>(2)* std3.at<float>(2);
+
+				double p1 = mvncdf(err, mean, std333);
+				double p2 = ang / maxang;
+				double p = p1 * p2;
+
+				ps.at<float>(cc) = p;
+				clusters.at<float>(i, j + 2) = 1;
+				subind.at<short>(cc) = j;
+				cc += 1;
+			}
+
+		}
+		catch (...)
+		{
+			std::cerr << "mvncdf failed: unknown error" << std::endl;
+			continue;
 		}
 
 		if (cc < 2) continue;
-		// ÌáÈ¡psµÄÇ°cc¸öÔªËØ
+		// ï¿½ï¿½È¡psï¿½ï¿½Ç°ccï¿½ï¿½Ôªï¿½ï¿½
 		cv::Mat ps_subset;
 		ps.rowRange(0, cc).copyTo(ps_subset);
 
-		// ½«ps_subset×ª»»Îªstd::vector
+		// ï¿½ï¿½ps_subset×ªï¿½ï¿½Îªstd::vector
 		std::vector<float> ps_vector;
 		ps_vector.assign((float*)ps_subset.datastart, (float*)ps_subset.dataend);
 
-		// ´´½¨Ë÷ÒýÏòÁ¿
+		// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		std::vector<int> indices(ps_vector.size());
 		for (int i = 0; i < indices.size(); ++i) {
 			indices[i] = i;
 		}
 
-		// Ê¹ÓÃlambda±í´ïÊ½¶ÔË÷Òý½øÐÐÅÅÐò
+		// Ê¹ï¿½ï¿½lambdaï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		std::sort(indices.begin(), indices.end(), [&ps_vector](int i1, int i2) {
 			return ps_vector[i1] < ps_vector[i2];
 			});
 
-		// ´´½¨ÅÅÐòºóµÄÏòÁ¿
+	
 		std::vector<float> ps_sort(ps_vector.size());
 		for (int i = 0; i < indices.size(); ++i) {
 			ps_sort[i] = ps_vector[indices[i]];
@@ -789,7 +1049,7 @@ bool ransac(const cv::Mat& vecs, cv::Mat& model, std::vector<bool>& inliers, int
 			bestInlierAccDis = accDis;
 			bestModel = sampleMean;
 			inliers = currentInliers;
-			maxIter = std::min(computeLoopNumber(sampleSize, confidence, vecs.rows, bestInlierCount), maxIter);//¶¯Ì¬¼ÆËãµü´ú´ÎÊý
+			maxIter = std::min(computeLoopNumber(sampleSize, confidence, vecs.rows, bestInlierCount), maxIter);//ï¿½ï¿½Ì¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			if (currentInlierCount > vecs.rows * confidence) {
 				break;
 			}
@@ -808,7 +1068,7 @@ void ransacLines(cv::Mat lines3d, PARAMS param, cv::Mat& inlierIdx, std::vector<
 
 	if (lines3d.rows < 5)
 		return;
-	
+
 
 	cv::Mat vecs = lines3d.colRange(0, 3) - lines3d.colRange(3, 6);
 
@@ -1022,12 +1282,12 @@ double nlopt_vecRefine3(IMG_INFO imgInfo, SPACE_REC spaceRec, int id, cv::Mat ve
 	}
 
 	opt.set_xtol_rel(1e-4);
-	opt.set_maxeval(5000); 
-	
+	opt.set_maxeval(5000);
+
 	try {
 		double minf;
 		nlopt::result result = opt.optimize(x0, minf);
-		
+
 	}
 	catch (std::exception& e) {
 		std::cout << "std::exception e" << std::endl;
@@ -1173,7 +1433,7 @@ bool ransac2(const cv::Mat& vecs, cv::Mat& model, std::vector<bool>& inliers, in
 			bestInlierAccDis = accDis;
 			bestModel = sampleMean;
 			inliers = currentInliers;
-			maxIter = std::min(computeLoopNumber(sampleSize, confidence, vecs.rows, bestInlierCount), maxIter);//¶¯Ì¬¼ÆËãµü´ú´ÎÊý
+			maxIter = std::min(computeLoopNumber(sampleSize, confidence, vecs.rows, bestInlierCount), maxIter);//ï¿½ï¿½Ì¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			if (currentInlierCount > vecs.rows * confidence) {
 				break;
 			}
@@ -1388,7 +1648,7 @@ cv::Mat lineGrow1(IMG_INFO imgInfo, SPACE_REC spaceRec, cv::Mat control3D, cv::M
 		knnum = reviseline.rows;
 
 	kdtree.knnSearch(queriesMat, vecIndx, vecDist, knnum, knn_params);
-	
+
 	cv::Mat reviseRes = cv::Mat::zeros(spaceRec.lines3D.rows, 7, CV_32FC1);
 
 	for (int i = 0; i < reviseID.rows; i++) {
@@ -1399,13 +1659,13 @@ cv::Mat lineGrow1(IMG_INFO imgInfo, SPACE_REC spaceRec, cv::Mat control3D, cv::M
 		for (int j = 0; j < vecIndx.cols; j++) {
 			int idbase = vecIndx.at<int>(i, j);
 			cv::Mat vec2 = vecs.row(idbase);
-			if (std::acos(std::abs(vec1.dot(vec2)) / cv::norm(vec1) / cv::norm(vec2)) < param.growAng) 
+			if (std::acos(std::abs(vec1.dot(vec2)) / cv::norm(vec1) / cv::norm(vec2)) < param.growAng)
 			{
 				//double score = 0.0;
 				cv::Point3d p1(0, 0, 0);
 				cv::Point3d p2(0, 0, 0);
 				double score = nlopt_vecRefine3(imgInfo, spaceRec, reviseID.at<float>(i, 0), vec2, param, "par", p1, p2);
-				if (score > maxscore) 
+				if (score > maxscore)
 				{
 					maxscore = score;
 					mp1 = p1;
