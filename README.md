@@ -1,3 +1,5 @@
+Some reconstructions are presented in [https://github.com/weidong-whu/3DLineResconstruction.wiki.git](https://github.com/weidong-whu/3DLineResconstruction.wiki.git)
+
 # 3D Line Reconstruction
 
 Welcome to the public repository for our paper: *"Clustering, Triangulation, and Evaluation of 3D Lines in Multiple Images. ISPRS,2024"* This repository features:
@@ -38,16 +40,4 @@ It now supports
 - Ag3line
 - Edlines (There are currently some bugs when using Edlines)
 
-### Recent reconstructions
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/abd6b995-910c-4d82-af7e-986e4eaefafd" width="45%" />
-  <img src="https://github.com/user-attachments/assets/94b57979-b6eb-4e05-b77c-c918977f11d2" width="45%" />
-</p>
-
-<p align="center">
-  <figure>
-    <img src="example/20250408.png" width="45%" />
-    <figcaption align="center">Reconstruct with 259 images (8192 ✖ 5460)</figcaption>
-  </figure>
-</p>
 
