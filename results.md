@@ -17,13 +17,29 @@
   </table>
 </div>
 
-<!-- Row 2: 单张图 -->
-<div align="center" style="margin-top: 20px;">
-  <img src="example/20250408.png" width="85%" />
-  <div><b>Reconstruct with 259 images (8192 ✖ 5460) Line detector-LSD</b></div>
-</div>
+<table align="center" style="margin-top: 20px;">
+  <tr>
+    <td align="center">
+      <img src="example/20250408.png" width="85%" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <b>Reconstruct with 259 images (8192 ✖ 5460) Line detector-LSD</b>
+    </td>
+  </tr>
+</table>
 
-<div align="center" style="margin-top: 20px;">
-  <img src="example/yanzhou.png" width="85%" />
-  <div><b>Reconstruct with 459 images (11648 ✖ 8736) Line detector-AG3line</b></div>
-</div>
+<table align="center" style="margin-top: 20px;">
+  <tr>
+    <td align="center">
+      <img src="example/yanzhou.png" width="85%" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <b>Reconstruct with 459 images (11648 ✖ 8736) Line detector-AG3line</b>
+    </td>
+  </tr>
+</table>
+
