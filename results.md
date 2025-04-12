@@ -11,7 +11,7 @@
     </tr>
     <tr>
       <td colspan="2" align="center">
-        <b>Reconstruct with 30 images (3072 ✖ 2048)</b>
+        <b>Reconstruct with 30 images (3072 ✖ 2048) Line detector-LSD </b>
       </td>
     </tr>
   </table>
@@ -20,5 +20,10 @@
 <!-- Row 2: 单张图 -->
 <div align="center" style="margin-top: 20px;">
   <img src="example/20250408.png" width="85%" />
-  <div><b>Reconstruct with 259 images (8192 ✖ 5460)</b></div>
+  <div><b>Reconstruct with 259 images (8192 ✖ 5460) Line detector-LSD</b></div>
+</div>
+
+<div align="center" style="margin-top: 20px;">
+  <img src="example/yanzhou.png" width="85%" />
+  <div><b>Reconstruct with 459 images (11648 ✖ 8736) Line detector-AG3line</b></div>
 </div>
