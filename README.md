@@ -1,4 +1,4 @@
-Some reconstructions are presented in [results.md](https://github.com/weidong-whu/3DLineResconstruction/blob/main/results.md)
+Some reconstruction results are presented in the [results.md](https://github.com/weidong-whu/3DLineResconstruction/blob/main/results.md) page, which is continuously updated with new examples.
 
 # 3D Line Reconstruction
 
